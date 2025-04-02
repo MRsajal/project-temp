@@ -698,33 +698,79 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
 function ShowGoodHabit({
   goodHabit,
   setGoodHabit,
+  points,
   setPoints,
   setDoneTask,
   setTotalTask,
+  db,
+  collectionName,
+  dailyGoodhabit,
+  setDoneTaskWeekly,
 }) {
-  function handlePoint(id) {
-    let addPoint = 0;
-
-    setGoodHabit((goodHabit) =>
-      goodHabit.map((item) =>
-        item.id === id ? { ...item, done: !item.done } : item
-      )
-    );
-    for (let i = 0; i < goodHabit.length; i++) {
-      if (goodHabit[i].id === id) {
-        if (goodHabit[i].done === false) {
-          addPoint = goodHabit[i].point;
-          setDoneTask((s) => s + 1);
-        } else {
-          addPoint = -goodHabit[i].point;
-        }
-        setPoints((s) => s + addPoint);
+  const doneTask = async () => {
+    if (!auth.currentUser) return;
+    const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+    try {
+      if (dailyGoodhabit) {
+        await updateDoc(userStatsRef, {
+          dailyCompletedTask: increment(1),
+        });
+        setDoneTask((prev) => prev + 1);
+      } else {
+        await updateDoc(userStatsRef, {
+          weeklyCompletedTask: increment(1),
+        });
+        setDoneTaskWeekly((prev) => prev + 1);
       }
+    } catch (error) {
+      console.error("Error adding task: ", error);
+    }
+  };
+  async function handlePoint(id, point, done) {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No user is logged in.");
+        return;
+      }
+
+      const documentRef = doc(db, "users", user.uid, collectionName, id);
+      await updateDoc(documentRef, { done: !done });
+
+      const updatedDoc = await getDoc(documentRef);
+      const updatedDone = updatedDoc.data()?.done;
+
+      setGoodHabit((prevGoodHabit) =>
+        prevGoodHabit.map((item) =>
+          item.id === id ? { ...item, done: updatedDone } : item
+        )
+      );
+      const userRef = doc(db, "users", user.uid);
+      let newPoints = done ? points - point : points + point;
+      if (newPoints < 0) newPoints = 0;
+      await updateDoc(userRef, { points: newPoints });
+      setPoints(newPoints);
+
+      doneTask();
+    } catch (error) {
+      console.error("Error updating document: ", error);
     }
   }
-  function handleDeleteItem(id) {
-    setGoodHabit((goodHabit) => goodHabit.filter((item) => item.id !== id));
-    setTotalTask((s) => s - 1);
+
+  async function handleDeleteItem(id) {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No user is logged in.");
+        return;
+      }
+      const documentRef = doc(db, "users", user.uid, collectionName, id);
+      await deleteDoc(documentRef);
+      setGoodHabit((goodHabit) => goodHabit.filter((item) => item.id !== id));
+      setTotalTask((s) => s - 1);
+    } catch (error) {
+      console.error("Error deleting document: ", error);
+    }
   }
   return (
     <div className="card-container">
@@ -732,7 +778,7 @@ function ShowGoodHabit({
         habits.done ? (
           <div></div>
         ) : (
-          <div className="card">
+          <div key={habits.id} className="card">
             <p>
               <span
                 style={{ cursor: "pointer" }}
@@ -761,7 +807,7 @@ function ShowGoodHabit({
                 border: "none",
                 cursor: "pointer",
               }}
-              onClick={() => handlePoint(habits.id)}
+              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
               Complete habit
             </button>
@@ -771,56 +817,82 @@ function ShowGoodHabit({
     </div>
   );
 }
-function ShowBadHabit({ badHabit, setBadHabit, setPoints }) {
-  function handlePoint(id) {
-    let addPoint = 0;
+function ShowBadHabit({
+  badHabit,
+  setBadHabit,
+  setPoints,
+  db,
+  collectionName,
+  points,
+  user,
+}) {
+  async function handlePoint(id, point, done) {
+    try {
+      const documentRef = doc(db, collectionName, id);
+      await updateDoc(documentRef, { done: !done });
 
-    setBadHabit((badHabit) =>
-      badHabit.map((item) =>
-        item.id === id ? { ...item, done: !item.done } : item
-      )
-    );
-    for (let i = 0; i < badHabit.length; i++) {
-      if (badHabit[i].id === id) {
-        if (badHabit[i].done === true) {
-          addPoint = badHabit[i].point;
-        } else {
-          addPoint = -badHabit[i].point;
-        }
-        setPoints((s) => s + addPoint);
-      }
+      const updatedDoc = await getDoc(documentRef);
+      const updatedDone = updatedDoc.data()?.done;
+
+      setBadHabit((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, done: updatedDone } : item
+        )
+      );
+
+      const userRef = doc(db, "users", user.uid);
+      setPoints((prev) => (done ? prev - point : prev + point));
+      await updateDoc(userRef, {
+        points: done ? points - point : points + point,
+      });
+    } catch (error) {
+      console.error("Error updating document: ", error);
     }
   }
-  function handleDeleteItem(id) {
-    setBadHabit((badHabit) => badHabit.filter((item) => item.id !== id));
+
+  async function handleDeleteItem(id) {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No user is logged in.");
+        return;
+      }
+      const documentRef = doc(db, "users", user.uid, collectionName, id);
+      await deleteDoc(documentRef);
+      setBadHabit((badHabit) => badHabit.filter((item) => item.id !== id));
+      //setTotalTask((s) => s - 1);
+    } catch (error) {
+      console.error("Error deleting document: ", error);
+    }
   }
+
+  if (badHabit.length === 0) return <p>No bad habits added yet!</p>;
+
   return (
     <div className="card-container">
-      {badHabit.map((habits) =>
-        habits.done ? (
-          <div></div>
-        ) : (
-          <div className="card">
+      {badHabit.map((habit) =>
+        habit.done ? null : (
+          <div key={habit.id} className="card">
             <p>
               <span
                 style={{ cursor: "pointer" }}
-                onClick={() => handleDeleteItem(habits.id)}
+                onClick={() => handleDeleteItem(habit.id)}
               >
                 ❌
               </span>
-              {habits.description}
+              {habit.description}
             </p>
             <p
               style={{
                 color:
-                  habits.point === 10
+                  habit.point === 10
                     ? "orange"
-                    : habits.point === 15
+                    : habit.point === 15
                     ? "blue"
                     : "#86A788",
               }}
             >
-              Gain: {habits.point} points
+              Gain: {habit.point} points
             </p>
             <button
               style={{
@@ -829,7 +901,7 @@ function ShowBadHabit({ badHabit, setBadHabit, setPoints }) {
                 border: "none",
                 cursor: "pointer",
               }}
-              onClick={() => handlePoint(habits.id)}
+              onClick={() => handlePoint(habit.id, habit.point, habit.done)}
             >
               Complete habit
             </button>
@@ -841,27 +913,61 @@ function ShowBadHabit({ badHabit, setBadHabit, setPoints }) {
 }
 
 function ShowReward({ rewards, setReward, setPoints }) {
-  const [claimedReward, setClaimedReward] = useState([]);
+  // const [claimedReward, setClaimedReward] = useState([]);
   const [showClaimedReward, setShowClaimedReward] = useState(false);
   function handleDeleteItem(id) {
     setReward((rewards) => rewards.filter((item) => item.id !== id));
   }
-  function handleReward(reward) {
-    setPoints((s) => {
-      if (s - reward.cost >= 0) {
-        setClaimedReward((prev) => [...prev, reward]);
-        setReward((prevRewards) =>
-          prevRewards.map((r) =>
-            r.id === reward.id ? { ...r, gain: true } : r
-          )
-        );
-        return s - reward.cost;
-      } else {
-        alert("Not enough points to redeem this reward!");
-        return s; // Keep points unchanged
+  const handleReward = async (reward) => {
+    if (!auth.currentUser) {
+      console.error("User not authenticated");
+      return;
+    }
+
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    const rewardRef = doc(userDocRef, "AvaiableReward", reward.id); // Correct path
+
+    try {
+      // Fetch the document to check if it exists
+      const docSnap = await getDoc(rewardRef);
+      if (!docSnap.exists()) {
+        console.error("Reward document does not exist:", reward.id);
+        alert("Reward not found!");
+        return;
       }
-    });
-  }
+
+      // Check if the user has enough points before updating
+      setPoints((prevPoints) => {
+        if (prevPoints - reward.cost < 0) {
+          alert("Not enough points to redeem this reward!");
+          return prevPoints; // Keep points unchanged
+        }
+
+        // Update Firestore to mark reward as claimed
+        updateDoc(rewardRef, { gain: true })
+          .then(() => {
+            setReward((prevRewards) =>
+              prevRewards.map((r) =>
+                r.id === reward.id ? { ...r, gain: true } : r
+              )
+            );
+          })
+          .catch((error) => {
+            console.error("Error updating Firestore:", error);
+          });
+
+        return prevPoints - reward.cost; // Deduct points
+      });
+    } catch (error) {
+      console.error("Error processing reward:", error);
+    }
+  };
+
+  const [claimedRewardsList, setClaimedRewardsList] = useState([]);
+
+  useEffect(() => {
+    setClaimedRewardsList(rewards.filter((reward) => reward.gain));
+  }, [rewards]);
 
   return (
     <div>
@@ -887,11 +993,11 @@ function ShowReward({ rewards, setReward, setPoints }) {
       </div>
       <div className="card-container">
         {showClaimedReward ? (
-          claimedReward.length > 0 ? (
-            claimedReward.map((rewards) => (
-              <div className="card" key={rewards.id}>
-                <p>{rewards.des}</p>
-                <p style={{ color: "#86A788" }}>Cost: {rewards.cost} points</p>
+          claimedRewardsList.length > 0 ? (
+            claimedRewardsList.map((reward) => (
+              <div className="card" key={reward.id}>
+                <p>{reward.des}</p>
+                <p style={{ color: "#86A788" }}>Cost: {reward.cost} points</p>
                 <p style={{ color: "green" }}>Claimed ✅</p>
               </div>
             ))

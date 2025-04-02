@@ -999,7 +999,12 @@ function ShowBadHabit({
   }
   async function handleDeleteItem(id) {
     try {
-      const documentRef = doc(db, collectionName, id);
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("No user is logged in.");
+        return;
+      }
+      const documentRef = doc(db, "users", user.uid, collectionName, id);
       await deleteDoc(documentRef);
       setBadHabit((badHabit) => badHabit.filter((item) => item.id !== id));
       //setTotalTask((s) => s - 1);
