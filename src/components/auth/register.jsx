@@ -213,9 +213,7 @@ export default function Register({ onImageSelect }) {
           </div>
           <button type="submit">Register</button>
         </form>
-        <p>
-          Already have an account? <Link href="/login">Login</Link>{" "}
-        </p>
+        <p>Already have an account?</p> <Link to="/login">Login</Link>
       </div>
     </div>
   );
