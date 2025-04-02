@@ -1,7 +1,7 @@
 import { async } from "@firebase/util";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { auth } from "../../firebase/firebase";
 import "./login.css";
 
@@ -101,7 +101,7 @@ export default function Login() {
           <button type="submit">Login</button>
         </form>
         <p>
-          Don't have an account? <a href="/register">Register</a>
+          Don't have an account? <Link to="/register">Register</Link>
         </p>
       </div>
     </div>
