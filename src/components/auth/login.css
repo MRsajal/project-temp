@@ -53,3 +53,12 @@
 .login button:hover {
   background-color: #0056b3;
 }
+@media screen and (max-width: 500px) {
+  .login {
+    display: flex;
+    flex-direction: column;
+  }
+  .about {
+    height: 50vh;
+  }
+}
