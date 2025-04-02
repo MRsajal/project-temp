@@ -1,9 +1,8 @@
-import { async } from "@firebase/util";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { addDoc, collection, doc, setDoc } from "firebase/firestore";
 import { getDownloadURL, uploadBytes, ref } from "firebase/storage";
 import React, { useState, useEffect } from "react";
-import { useNavigate, useNavigation } from "react-router";
+import { useNavigate } from "react-router";
 import { auth, db, storage } from "../../firebase/firebase";
 import "./login.css";
 
