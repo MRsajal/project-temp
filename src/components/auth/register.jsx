@@ -2,7 +2,7 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { addDoc, collection, doc, setDoc } from "firebase/firestore";
 import { getDownloadURL, uploadBytes, ref } from "firebase/storage";
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { auth, db, storage } from "../../firebase/firebase";
 import "./login.css";
 
@@ -214,7 +214,7 @@ export default function Register({ onImageSelect }) {
           <button type="submit">Register</button>
         </form>
         <p>
-          Already have an account? <a href="/login">Login</a>{" "}
+          Already have an account? <Link href="/login">Login</Link>{" "}
         </p>
       </div>
     </div>
