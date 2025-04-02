@@ -38,7 +38,12 @@
 .show {
   display: flex;
   flex-direction: column;
-  align-items: c;
+  width: 100vw;
+  height: 100vh;
+}
+.todo-list-2 {
+  display: grid;
+  height: 100vh;
 }
 
 @media screen and (max-width: 400px) {

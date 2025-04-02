@@ -776,7 +776,6 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
       const userDocRef = doc(db, "users", auth.currentUser.uid); // Reference to the user's document
       const habitsCollectionRef = collection(userDocRef, collectionName); // Reference to the habits subcollection for the user
       const docRef = await addDoc(habitsCollectionRef, listItem);
-      addTask();
       console.log("Document written with ID:", docRef.id);
     } catch (error) {
       console.error("Error adding document: ", error);
