@@ -5,6 +5,7 @@
   height: 100%;
   font-family: "Noto Sans", sans-serif;
 }
+
 .todo-list {
   display: grid;
   /* grid-template-rows: 33% 33% 33%; */
@@ -48,7 +49,7 @@
   display: none;
 }
 .topnav {
-  background-color: #a0a0a8;
+  background-color: #a4cef8;
   overflow: hidden;
   color: black;
   display: flex;

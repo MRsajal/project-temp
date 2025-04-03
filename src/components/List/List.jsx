@@ -189,7 +189,7 @@ export default function List() {
   return (
     <div className="show header finisher-header">
       <div className="list">
-        <nav className="topnav">
+        <nav className="topnav1">
           <ul>
             <li>
               <NavLink
@@ -915,8 +915,21 @@ function ShowBadHabit({
 function ShowReward({ rewards, setReward, setPoints }) {
   // const [claimedReward, setClaimedReward] = useState([]);
   const [showClaimedReward, setShowClaimedReward] = useState(false);
-  function handleDeleteItem(id) {
-    setReward((rewards) => rewards.filter((item) => item.id !== id));
+  async function handleDeleteItem(id) {
+    if (!auth.currentUser) {
+      console.error("User not authenticated");
+      return;
+    }
+
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    const rewardRef = doc(userDocRef, "AvaiableReward", id);
+
+    try {
+      await deleteDoc(rewardRef);
+      setReward((prevRewards) => prevRewards.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Error deleting reward from Firestore:", error);
+    }
   }
   const handleReward = async (reward) => {
     if (!auth.currentUser) {
