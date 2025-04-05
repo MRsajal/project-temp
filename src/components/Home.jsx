@@ -17,6 +17,7 @@ import {
   setDoc,
   increment,
   getDocs,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
@@ -51,16 +52,33 @@ export default function Home() {
       const unsubscribe = onSnapshot(
         collection(db, "users", auth.currentUser.uid, "dailyGoodhabit"),
         (snapshot) => {
-          const fetchedData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          const today = new Date().toDateString();
+
+          const fetchedData = snapshot.docs
+            .map((doc) => {
+              const data = doc.data();
+              const createdAt = data.createdAt?.toDate().toDateString();
+
+              // ✅ Only return the document if date matches today
+              if (createdAt === today) {
+                return {
+                  id: doc.id,
+                  ...data,
+                };
+              }
+
+              return null;
+            })
+            .filter(Boolean); // Remove nulls (i.e. outdated tasks)
+
           setGoodHabit(fetchedData);
         }
       );
+
       return () => unsubscribe();
     }
-  }, [db, auth.currentUser]);
+  }, [db]);
+
   //weeklyGoodhabit
   useEffect(() => {
     if (auth.currentUser) {
@@ -422,6 +440,7 @@ export default function Home() {
               collectionName="dailyGoodhabit"
               dailyGoodhabit={dailyGoodhabit}
               setDoneTaskWeekly={setDoneTaskWeekly}
+              setTotalTaskWeekly={setTotalTaskWeekly}
             />
           ) : (
             <ShowGoodHabit
@@ -435,6 +454,7 @@ export default function Home() {
               collectionName="weeklyGoodhabit"
               dailyGoodhabit={dailyGoodhabit}
               setDoneTaskWeekly={setDoneTaskWeekly}
+              setTotalTaskWeekly={setTotalTaskWeekly}
             />
           )}
         </div>
@@ -629,12 +649,12 @@ function Positive({
         await updateDoc(userStatsRef, {
           dailyTotalTask: increment(1),
         });
-        setTotalTask((prev) => prev + 1);
+        //setTotalTask((prev) => prev + 1);
       } else {
         await updateDoc(userStatsRef, {
           weeklyTotalTask: increment(1),
         });
-        setTotalTaskWeekly((prev) => prev + 1);
+        //setTotalTaskWeekly((prev) => prev + 1);
       }
     } catch (error) {
       console.error("Error adding task: ", error);
@@ -669,6 +689,7 @@ function Positive({
       point,
       type: true,
       done: false,
+      createdAt: serverTimestamp(), // timestamp here
     };
     setTotalTask((s) => s + 1);
     handleAddList(newItem);
@@ -683,48 +704,6 @@ function Positive({
     if (selectDificulty === "Medium") setPoint(15);
     if (selectDificulty === "Hard") setPoint(20);
   }
-
-  //handle delete daily list
-  const deleteDailyTasks = async () => {
-    if (!auth.currentUser) return;
-    try {
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const habitsCollectionRef = collection(userDocRef, "dailyGoodhabit");
-      const querySnapshot = await getDocs(habitsCollectionRef);
-      querySnapshot.forEach(async (docSnapshot) => {
-        await deleteDoc(doc(habitsCollectionRef, docSnapshot.id));
-      });
-      console.log("Daily tasks deleted successfully.");
-    } catch (error) {
-      console.error("Error deleting daily tasks:", error);
-    }
-  };
-  const deleteWeeklyTasks = async () => {
-    if (!auth.currentUser) return;
-    try {
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const habitsCollectionRef = collection(userDocRef, "weeklyGoodhabit");
-      const querySnapshot = await getDocs(habitsCollectionRef);
-      querySnapshot.forEach(async (docSnapshot) => {
-        await deleteDoc(doc(habitsCollectionRef, docSnapshot.id));
-      });
-      console.log("Weekly tasks deleted successfully.");
-    } catch (error) {
-      console.error("Error deleting weekly tasks: ", error);
-    }
-  };
-  useEffect(() => {
-    //deleteDailyTasks();
-    const dailyInterval = setInterval(deleteDailyTasks, 24 * 60 * 60 * 1000);
-    const weeklyInterval = setInterval(
-      deleteWeeklyTasks,
-      7 * 24 * 60 * 60 * 1000
-    );
-    return () => {
-      clearInterval(dailyInterval);
-      clearInterval(weeklyInterval);
-    };
-  }, []);
 
   return (
     <div
@@ -858,6 +837,7 @@ function ShowGoodHabit({
   collectionName,
   dailyGoodhabit,
   setDoneTaskWeekly,
+  setTotalTaskWeekly,
 }) {
   const doneTask = async () => {
     if (!auth.currentUser) return;
@@ -878,6 +858,7 @@ function ShowGoodHabit({
       console.error("Error adding task: ", error);
     }
   };
+
   async function handlePoint(id, point, done) {
     try {
       const user = auth.currentUser;
@@ -917,9 +898,21 @@ function ShowGoodHabit({
         return;
       }
       const documentRef = doc(db, "users", user.uid, collectionName, id);
+      const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
       await deleteDoc(documentRef);
+      if (dailyGoodhabit) {
+        await updateDoc(userStatsRef, {
+          dailyTotalTask: increment(-1),
+        });
+        setTotalTask((prev) => prev - 1);
+      } else {
+        await updateDoc(userStatsRef, {
+          weeklyTotalTask: increment(-1),
+        });
+        setTotalTaskWeekly((prev) => prev - 1);
+      }
       setGoodHabit((goodHabit) => goodHabit.filter((item) => item.id !== id));
-      setTotalTask((s) => s - 1);
+      //setTotalTask((s) => s - 1);
     } catch (error) {
       console.error("Error deleting document: ", error);
     }
