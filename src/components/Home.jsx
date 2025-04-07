@@ -20,6 +20,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { async } from "@firebase/util";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -52,32 +53,28 @@ export default function Home() {
       const unsubscribe = onSnapshot(
         collection(db, "users", auth.currentUser.uid, "dailyGoodhabit"),
         (snapshot) => {
-          const today = new Date().toDateString();
-
-          const fetchedData = snapshot.docs
-            .map((doc) => {
-              const data = doc.data();
-              const createdAt = data.createdAt?.toDate().toDateString();
-
-              // ✅ Only return the document if date matches today
-              if (createdAt === today) {
-                return {
-                  id: doc.id,
-                  ...data,
-                };
-              }
-
-              return null;
-            })
-            .filter(Boolean); // Remove nulls (i.e. outdated tasks)
-
+          const fetchedData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
           setGoodHabit(fetchedData);
+          updateDailyTotalTask(fetchedData.length);
         }
       );
-
       return () => unsubscribe();
     }
-  }, [db]);
+  }, [db, auth.currentUser]);
+  async function updateDailyTotalTask(taskCount) {
+    if (!auth.currentUser) return;
+    const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+    try {
+      await updateDoc(userStatsRef, {
+        dailyTotalTask: taskCount,
+      });
+    } catch (error) {
+      console.error("Error updating dailyTotalTask: ", error);
+    }
+  }
 
   //weeklyGoodhabit
   useEffect(() => {
@@ -95,6 +92,35 @@ export default function Home() {
       return () => unsubscribe();
     }
   }, [db, auth.currentUser]);
+  async function deleteWeeklyList() {
+    if (!auth.currentUser) return;
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    const habitsCollectionRef = collection(userDocRef, "weeklyGoodhabit");
+
+    try {
+      const querySnapshot = await getDocs(habitsCollectionRef);
+      const deletePromises = querySnapshot.docs.map((docSnapshot) => {
+        return deleteDoc(doc(habitsCollectionRef, docSnapshot.id));
+      });
+      await Promise.all(deletePromises);
+      console.log("Weekly list deleted successfully.");
+      await updateDoc(doc(db, "userStats", auth.currentUser.uid), {
+        weeklyTotalTask: 0,
+      });
+      setTotalTaskWeekly(0);
+    } catch (error) {
+      console.error("Error deleting weekly list: ", error);
+    }
+  }
+  useEffect(() => {
+    if (!dailyGoodhabit) {
+      const now = new Date();
+      if (now.getDay() === 6) {
+        // 6 represents Saturday
+        deleteWeeklyList();
+      }
+    }
+  }, [dailyGoodhabit, db]);
   //dailyBadhabit
   useEffect(() => {
     if (auth.currentUser) {
@@ -683,7 +709,7 @@ function Positive({
   }
   function handleDescription(e) {
     e.preventDefault();
-    if (!description && !point) return;
+    if (!description || !point) return;
     const newItem = {
       description,
       point,
