@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import "./Home.css";
 import { useAuth } from "../context/authContext";
 import { signOut } from "firebase/auth";
@@ -93,6 +93,11 @@ export default function Home() {
       await updateDoc(userStatsRef, {
         dailyTotalTask: taskCount,
       });
+      if (taskCount === 0) {
+        await updateDoc(userStatsRef, {
+          dailyCompletedTask: 0,
+        });
+      }
     } catch (error) {
       console.error("Error updating dailyTotalTask: ", error);
     }
@@ -130,6 +135,11 @@ export default function Home() {
         weeklyTotalTask: 0,
       });
       setTotalTaskWeekly(0);
+      if (totatTaskWeekly === 0) {
+        await updateDoc(doc(db, "userStats", auth.currentUser.uid), {
+          weeklyCompletedTask: 0,
+        });
+      }
     } catch (error) {
       console.error("Error deleting weekly list: ", error);
     }
@@ -273,8 +283,32 @@ export default function Home() {
     return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
-  const handleUpdateProfilePic = () => {
-    navigate("/updateProfilePic");
+  const handleUpdateProfilePic = async () => {
+    if (points < 50) {
+      alert(`You don't have enough points! ${50 - points} points more needed.`);
+      return;
+    }
+    const confirmUpdate = window.confirm(
+      "Are you sure? 50 points will be reduced!"
+    );
+    if (confirmUpdate) {
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("User not authenticated");
+        return;
+      }
+      try {
+        const userRef = doc(db, "user", user.uid);
+        const newPoints = points - 50;
+        await updateDoc(userRef, {
+          points: newPoints,
+        });
+        setPoints(newPoints);
+        navigate("/updateProfilePic");
+      } catch (error) {
+        console.error("Error updating points: ", error);
+      }
+    }
   };
 
   const handleImageChange = (event) => {
@@ -328,26 +362,68 @@ export default function Home() {
 
   const fetchUserStats = async (userId) => {
     if (!userId) return;
+    const todayDayNumber = new Date().getDay();
     try {
       const userStatsRef = doc(db, "userStats", userId);
       const docSnap = await getDoc(userStatsRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setTotalTask(data.dailyTotalTask || 0);
-        setDoneTask(data.dailyCompletedTask || 0);
+
+        if (data.dayNumber !== todayDayNumber) {
+          //It's a new day-> Reset daily tasks
+          await updateDoc(userStatsRef, {
+            dailyTotalTask: 0,
+            dailyCompletedTask: 0,
+            dayNumber: todayDayNumber,
+          });
+          setTotalTask(0);
+          setDoneTask(0);
+        } else {
+          //same day->load existing data
+          setTotalTask(data.dailyTotalTask || 0);
+          setDoneTask(data.dailyCompletedTask || 0);
+        }
+        // Weekly data always stays
         setTotalTaskWeekly(data.weeklyTotalTask || 0);
         setDoneTaskWeekly(data.weeklyCompletedTask || 0);
       } else {
+        // First time data is not there → create new
         await setDoc(userStatsRef, {
           dailyTotalTask: 0,
           dailyCompletedTask: 0,
           weeklyTotalTask: 0,
           weeklyCompletedTask: 0,
+          dayNumber: todayDayNumber,
         });
+
+        setTotalTask(0);
+        setDoneTask(0);
+        setTotalTaskWeekly(0);
+        setDoneTaskWeekly(0);
       }
     } catch (error) {
       console.error("Error fetching user stats: ", error);
     }
+    // try {
+    //   const userStatsRef = doc(db, "userStats", userId);
+    //   const docSnap = await getDoc(userStatsRef);
+    //   if (docSnap.exists()) {
+    //     const data = docSnap.data();
+    //     setTotalTask(data.dailyTotalTask || 0);
+    //     setDoneTask(data.dailyCompletedTask || 0);
+    //     setTotalTaskWeekly(data.weeklyTotalTask || 0);
+    //     setDoneTaskWeekly(data.weeklyCompletedTask || 0);
+    //   } else {
+    //     await setDoc(userStatsRef, {
+    //       dailyTotalTask: 0,
+    //       dailyCompletedTask: 0,
+    //       weeklyTotalTask: 0,
+    //       weeklyCompletedTask: 0,
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.error("Error fetching user stats: ", error);
+    // }
   };
 
   useEffect(() => {
@@ -355,45 +431,6 @@ export default function Home() {
       fetchUserStats(auth.currentUser.uid);
     }
   }, [auth.currentUser]);
-
-  //auto delete
-  // async function clearHabits(collectionName) {
-  //   if (!auth.currentUser) return;
-  //   try {
-  //     const userDocRef = doc(db, "users", auth.currentUser.uid);
-  //     const habitsCollectionRef = collection(userDocRef, collectionName);
-  //     const querySnapshot = await getDocs(habitsCollectionRef);
-  //     const deletePromises = querySnapshot.docs.map((docSnapshot) =>
-  //       deleteDoc(docSnapshot.ref)
-  //     );
-  //     await Promise.all(deletePromises);
-  //   } catch (error) {
-  //     console.error(`Error clearing ${collectionName}: `, error);
-  //   }
-  // }
-  // function scheduleClearHabits(collectionName, cronSchedule) {
-  //   if (typeof window === "undefined") {
-  //     schedule.scheduleJob(cronSchedule, () => {
-  //       clearHabits(collectionName);
-  //     });
-  //   } else {
-  //     console.log("Scheduling only available on server side.");
-  //   }
-  // }
-  // useEffect(() => {
-  //   if (dailyBadhabit) {
-  //     scheduleClearHabits("dailyBadhabit", "*/0 0 * * *");
-  //   } else {
-  //     scheduleClearHabits("weeklyBadhabit", "*/0 0 * * 0");
-  //   }
-  // }, dailyBadhabit);
-  // useEffect(() => {
-  //   if (dailyGoodhabit) {
-  //     scheduleClearHabits("dailyGoodhabit", "*/1 * * * *");
-  //   } else {
-  //     scheduleClearHabits("weeklyGoodhabit", "*/0 0 * * 0");
-  //   }
-  // }, dailyGoodhabit);
 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isRewardPopupOpen, setIsRewardPopupOpen] = useState(false);
