@@ -48,22 +48,44 @@ export default function Home() {
   });
 
   //dailyGoodhabit
+
   useEffect(() => {
     if (auth.currentUser) {
       const unsubscribe = onSnapshot(
         collection(db, "users", auth.currentUser.uid, "dailyGoodhabit"),
         (snapshot) => {
-          const fetchedData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          const todayDayNumber = new Date().getDay();
+
+          const fetchedData = [];
+
+          snapshot.docs.forEach((docItem) => {
+            const data = { id: docItem.id, ...docItem.data() };
+
+            if (data.createdAt === todayDayNumber) {
+              fetchedData.push(data);
+            } else {
+              // Delete from Firestore if day not matched
+              deleteDoc(
+                doc(
+                  db,
+                  "users",
+                  auth.currentUser.uid,
+                  "dailyGoodhabit",
+                  docItem.id
+                )
+              );
+            }
+          });
+
           setGoodHabit(fetchedData);
           updateDailyTotalTask(fetchedData.length);
         }
       );
+
       return () => unsubscribe();
     }
   }, [db, auth.currentUser]);
+
   async function updateDailyTotalTask(taskCount) {
     if (!auth.currentUser) return;
     const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
@@ -127,13 +149,34 @@ export default function Home() {
       const unsubscribe = onSnapshot(
         collection(db, "users", auth.currentUser.uid, "dailyBadhabit"),
         (snapshot) => {
-          const fetchedData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          const todayDayNumber = new Date().getDay();
+
+          const fetchedData = [];
+
+          snapshot.docs.forEach((docItem) => {
+            const data = { id: docItem.id, ...docItem.data() };
+
+            if (data.createdAt === todayDayNumber) {
+              fetchedData.push(data);
+            } else {
+              // Delete from Firestore if day not matched
+              deleteDoc(
+                doc(
+                  db,
+                  "users",
+                  auth.currentUser.uid,
+                  "dailyBadhabit",
+                  docItem.id
+                )
+              );
+            }
+          });
+
           setBadHabit(fetchedData);
+          //updateDailyTotalTask(fetchedData.length);
         }
       );
+
       return () => unsubscribe();
     }
   }, [db, auth.currentUser]);
@@ -153,6 +196,35 @@ export default function Home() {
       return () => unsubscribe();
     }
   }, [db, auth.currentUser]);
+  async function deleteWeeklyBadList() {
+    if (!auth.currentUser) return;
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    const habitsCollectionRef = collection(userDocRef, "weeklyBadhabit");
+
+    try {
+      const querySnapshot = await getDocs(habitsCollectionRef);
+      const deletePromises = querySnapshot.docs.map((docSnapshot) => {
+        return deleteDoc(doc(habitsCollectionRef, docSnapshot.id));
+      });
+      await Promise.all(deletePromises);
+      console.log("Weekly list deleted successfully.");
+      // await updateDoc(doc(db, "userStats", auth.currentUser.uid), {
+      //   weeklyTotalTask: 0,
+      // });
+      // setTotalTaskWeekly(0);
+    } catch (error) {
+      console.error("Error deleting weekly list: ", error);
+    }
+  }
+  useEffect(() => {
+    if (!dailyBadhabit) {
+      const now = new Date();
+      if (now.getDay() === 6) {
+        // 6 represents Saturday
+        deleteWeeklyBadList();
+      }
+    }
+  }, [dailyBadhabit, db]);
   //available reward
   useEffect(() => {
     if (auth.currentUser) {
@@ -710,12 +782,13 @@ function Positive({
   function handleDescription(e) {
     e.preventDefault();
     if (!description || !point) return;
+    const currentDay = new Date().getDay();
     const newItem = {
       description,
       point,
       type: true,
       done: false,
-      createdAt: serverTimestamp(), // timestamp here
+      createdAt: currentDay,
     };
     setTotalTask((s) => s + 1);
     handleAddList(newItem);
@@ -796,11 +869,13 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
   function handleDescription(e) {
     e.preventDefault();
     if (!description && !point) return;
+    const currentDay = new Date().getDay();
     const newItem = {
       description,
       point,
       type: false,
       done: false,
+      createdAt: currentDay,
     };
 
     handleAddList(newItem);
