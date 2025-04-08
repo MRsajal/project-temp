@@ -555,7 +555,7 @@ export default function Home() {
           You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out of{" "}
           {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
         </p>
-        <div>
+        <div className="graph">
           <button
             className="show-graph-btn"
             onClick={() => setShowGraph(!showGraph)}
