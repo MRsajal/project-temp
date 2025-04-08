@@ -20,6 +20,15 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
 import { async } from "@firebase/util";
 
 export default function Home() {
@@ -29,6 +38,7 @@ export default function Home() {
   const [goodHabitWeekly, setGoodHabitWeekly] = useState([]);
   const [dailyGoodhabit, setDailyGoodHabit] = useState(true);
   const [dailyBadhabit, setDailyBadHabit] = useState(true);
+  const [showGraph, setShowGraph] = useState(false);
   const [badHabit, setBadHabit] = useState([]);
   const [badHabitWeekly, setBadHabitWeekly] = useState([]);
   const [reward, setReward] = useState([]);
@@ -432,6 +442,41 @@ export default function Home() {
     }
   }, [auth.currentUser]);
 
+  //graph show
+  const [data, setData] = useState([]);
+  const days = ["Sun", "Mon", "Tue", "Web", "Thu", "Fri", "Sat"];
+  useEffect(() => {
+    const fetchWeeklyData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const today = new Date().getDay();
+      let tempData = [];
+      for (let i = 0; i < 7; i++) {
+        const userStatsRef = doc(db, "userStats", user.uid);
+        const docSnap = await getDoc(userStatsRef);
+
+        if (docSnap.exists()) {
+          //const datas = docSnap.data();
+          const total =
+            i === today
+              ? docSnap.data().dailyTotalTask || 0
+              : data.dailyTotalTask || 0;
+          const done =
+            i === today
+              ? docSnap.data().dailyCompletedTask || 0
+              : data.dailyCompletedTask || 0;
+          const percentage = total === 0 ? 0 : (done / total) * 100;
+          tempData.push({ name: days[i], percentage });
+        } else {
+          tempData.push({ name: days[i], percentage: 0 });
+          //console.log("Percentage: ", days[i]);
+        }
+      }
+      setData(tempData);
+    };
+    fetchWeeklyData();
+  });
+
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isRewardPopupOpen, setIsRewardPopupOpen] = useState(false);
   const [isNegativePopupOpen, setIsNegativePopupOpen] = useState(false);
@@ -510,6 +555,30 @@ export default function Home() {
           You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out of{" "}
           {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
         </p>
+        <div>
+          <button
+            className="show-graph-btn"
+            onClick={() => setShowGraph(!showGraph)}
+          >
+            {showGraph ? "Hide Progress" : "Show Daily Progress"}
+          </button>
+          {showGraph && (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data}>
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Bar dataKey="percentage" fill="#4ade80">
+                  <LabelList
+                    dataKey="percentage"
+                    position="top"
+                    formatter={(val) => `${val.toFixed(2)}%`}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
 
         <button className="logout-btn" onClick={handleLogOut}>
           Logout
