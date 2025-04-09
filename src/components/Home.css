@@ -114,8 +114,17 @@
   font-size: 20px;
   cursor: pointer;
 }
-
+.display-task-amount2 {
+  display: none;
+}
 @media screen and (max-width: 600px) {
+  .display-task-amount1 {
+    display: none;
+  }
+  .display-task-amount2 {
+    display: block;
+    margin-bottom: 10px;
+  }
   .todo-list {
     display: none;
   }

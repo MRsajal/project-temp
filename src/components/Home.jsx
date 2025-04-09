@@ -404,8 +404,8 @@ export default function Home() {
         };
         setTotalTask(todayData.dailyTotalTask);
         setDoneTask(todayData.dailyCompletedTask);
-        setTotalTaskWeekly(todayData.weeklyTotalTask);
-        setDoneTaskWeekly(todayData.weeklyCompletedTask);
+        setTotalTaskWeekly(data.weeklyTotalTask);
+        setDoneTaskWeekly(data.weeklyCompletedTask);
       } else {
         // First time user → Create default data
         const initailData = {
@@ -536,13 +536,39 @@ export default function Home() {
           Total points:{" "}
           <span style={{ color: "#86A788" }}>{points} points</span>
         </p>
-        <h4 style={{ color: dailyGoodhabit ? "purple" : "#01acdf" }}>
-          {dailyGoodhabit ? "Daily" : "Weekly"}
-        </h4>
-        <p style={{ color: "red" }}>
-          You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out of{" "}
-          {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
-        </p>
+        <div className="display-task-amount1">
+          <h4 style={{ color: dailyGoodhabit ? "purple" : "#01acdf" }}>
+            {dailyGoodhabit ? "Daily" : "Weekly"}
+          </h4>
+          <p style={{ color: "red" }}>
+            You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out
+            of {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
+          </p>
+        </div>
+        <div style={{ textAlign: "center" }} className="display-task-amount2">
+          <h4 style={{ color: dailyGoodhabit ? "purple" : "#01acdf" }}>
+            {dailyGoodhabit ? "Daily" : "Weekly"}
+          </h4>
+
+          <p style={{ color: "red" }}>
+            You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out
+            of {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
+          </p>
+          <button
+            onClick={() => setDailyGoodHabit((prev) => !prev)}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#01acdf",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Swap
+          </button>
+        </div>
+
         <div className="graph">
           <button
             className="show-graph-btn"

@@ -472,17 +472,19 @@ function Positive({
   const addTask = async () => {
     if (!auth.currentUser) return;
     const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+    const todayDayNumber = new Date().getDay();
     try {
       if (dailyGoodhabit) {
+        const dayField = `day${todayDayNumber}.dailyTotalTask`;
         await updateDoc(userStatsRef, {
-          dailyTotalTask: increment(1),
+          [dayField]: increment(1),
         });
-        setTotalTask((prev) => prev + 1);
+        //setTotalTask((prev) => prev + 1);
       } else {
         await updateDoc(userStatsRef, {
           weeklyTotalTask: increment(1),
         });
-        setTotalTaskWeekly((prev) => prev + 1);
+        //setTotalTaskWeekly((prev) => prev + 1);
       }
     } catch (error) {
       console.error("Error adding task: ", error);
@@ -511,12 +513,14 @@ function Positive({
   }
   function handleDescription(e) {
     e.preventDefault();
-    if (!description && !point) return;
+    if (!description || !point) return;
+    const currentDay = new Date().getDay();
     const newItem = {
       description,
       point,
       type: true,
       done: false,
+      createdAt: currentDay,
     };
     setTotalTask((s) => s + 1);
     handleAddList(newItem);
@@ -531,48 +535,6 @@ function Positive({
     if (selectDificulty === "Medium") setPoint(15);
     if (selectDificulty === "Hard") setPoint(20);
   }
-
-  //handle delete daily list
-  const deleteDailyTasks = async () => {
-    if (!auth.currentUser) return;
-    try {
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const habitsCollectionRef = collection(userDocRef, "dailyGoodhabit");
-      const querySnapshot = await getDocs(habitsCollectionRef);
-      querySnapshot.forEach(async (docSnapshot) => {
-        await deleteDoc(doc(habitsCollectionRef, docSnapshot.id));
-      });
-      console.log("Daily tasks deleted successfully.");
-    } catch (error) {
-      console.error("Error deleting daily tasks:", error);
-    }
-  };
-  const deleteWeeklyTasks = async () => {
-    if (!auth.currentUser) return;
-    try {
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const habitsCollectionRef = collection(userDocRef, "weeklyGoodhabit");
-      const querySnapshot = await getDocs(habitsCollectionRef);
-      querySnapshot.forEach(async (docSnapshot) => {
-        await deleteDoc(doc(habitsCollectionRef, docSnapshot.id));
-      });
-      console.log("Weekly tasks deleted successfully.");
-    } catch (error) {
-      console.error("Error deleting weekly tasks: ", error);
-    }
-  };
-  useEffect(() => {
-    //deleteDailyTasks();
-    const dailyInterval = setInterval(deleteDailyTasks, 24 * 60 * 60 * 1000);
-    const weeklyInterval = setInterval(
-      deleteWeeklyTasks,
-      7 * 24 * 60 * 60 * 1000
-    );
-    return () => {
-      clearInterval(dailyInterval);
-      clearInterval(weeklyInterval);
-    };
-  }, []);
 
   return (
     <div
@@ -639,11 +601,13 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
   function handleDescription(e) {
     e.preventDefault();
     if (!description && !point) return;
+    const currentDay = new Date().getDay();
     const newItem = {
       description,
       point,
       type: false,
       done: false,
+      createdAt: currentDay,
     };
 
     handleAddList(newItem);
@@ -706,17 +670,22 @@ function ShowGoodHabit({
   collectionName,
   dailyGoodhabit,
   setDoneTaskWeekly,
+  setTotalTaskWeekly,
 }) {
   const doneTask = async () => {
     if (!auth.currentUser) return;
     const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+    const todayDayNumber = new Date().getDay();
     try {
       if (dailyGoodhabit) {
+        //Daily habit -> Update today's data only
+        const dayField = `day${todayDayNumber}.dailyCompletedTask`;
         await updateDoc(userStatsRef, {
-          dailyCompletedTask: increment(1),
+          [dayField]: increment(1),
         });
         setDoneTask((prev) => prev + 1);
       } else {
+        // Weekly habit → Update weeklyCompletedTask
         await updateDoc(userStatsRef, {
           weeklyCompletedTask: increment(1),
         });
@@ -726,6 +695,7 @@ function ShowGoodHabit({
       console.error("Error adding task: ", error);
     }
   };
+
   async function handlePoint(id, point, done) {
     try {
       const user = auth.currentUser;
@@ -765,9 +735,23 @@ function ShowGoodHabit({
         return;
       }
       const documentRef = doc(db, "users", user.uid, collectionName, id);
+      const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+      const todayDayNumber = new Date().getDay();
       await deleteDoc(documentRef);
+      if (dailyGoodhabit) {
+        const dayField = `day${todayDayNumber}.dailyTotalTask`;
+        await updateDoc(userStatsRef, {
+          [dayField]: increment(-1),
+        });
+        setTotalTask((prev) => prev - 1);
+      } else {
+        await updateDoc(userStatsRef, {
+          weeklyTotalTask: increment(-1),
+        });
+        setTotalTaskWeekly((prev) => prev - 1);
+      }
       setGoodHabit((goodHabit) => goodHabit.filter((item) => item.id !== id));
-      setTotalTask((s) => s - 1);
+      //setTotalTask((s) => s - 1);
     } catch (error) {
       console.error("Error deleting document: ", error);
     }
@@ -830,26 +814,21 @@ function ShowBadHabit({
     try {
       const documentRef = doc(db, collectionName, id);
       await updateDoc(documentRef, { done: !done });
-
       const updatedDoc = await getDoc(documentRef);
       const updatedDone = updatedDoc.data()?.done;
-
-      setBadHabit((prev) =>
-        prev.map((item) =>
+      setBadHabit((badHabit) =>
+        badHabit.map((item) =>
           item.id === id ? { ...item, done: updatedDone } : item
         )
       );
-
       const userRef = doc(db, "users", user.uid);
-      setPoints((prev) => (done ? prev - point : prev + point));
-      await updateDoc(userRef, {
-        points: done ? points - point : points + point,
-      });
+      let newPoints = done ? points + point : points - point;
+      await updateDoc(userRef, { points: newPoints });
+      setPoints(newPoints);
     } catch (error) {
-      console.error("Error updating document: ", error);
+      console.error("Error updateing document: ", error);
     }
   }
-
   async function handleDeleteItem(id) {
     try {
       const user = auth.currentUser;
@@ -865,34 +844,33 @@ function ShowBadHabit({
       console.error("Error deleting document: ", error);
     }
   }
-
-  if (badHabit.length === 0) return <p>No bad habits added yet!</p>;
-
   return (
     <div className="card-container">
-      {badHabit.map((habit) =>
-        habit.done ? null : (
-          <div key={habit.id} className="card">
+      {badHabit.map((habits) =>
+        habits.done ? (
+          <div></div>
+        ) : (
+          <div className="card">
             <p>
               <span
                 style={{ cursor: "pointer" }}
-                onClick={() => handleDeleteItem(habit.id)}
+                onClick={() => handleDeleteItem(habits.id)}
               >
                 ❌
               </span>
-              {habit.description}
+              {habits.description}
             </p>
             <p
               style={{
                 color:
-                  habit.point === 10
+                  habits.point === 10
                     ? "orange"
-                    : habit.point === 15
+                    : habits.point === 15
                     ? "blue"
                     : "#86A788",
               }}
             >
-              Gain: {habit.point} points
+              Gain: {habits.point} points
             </p>
             <button
               style={{
@@ -901,7 +879,7 @@ function ShowBadHabit({
                 border: "none",
                 cursor: "pointer",
               }}
-              onClick={() => handlePoint(habit.id, habit.point, habit.done)}
+              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
               Complete habit
             </button>
