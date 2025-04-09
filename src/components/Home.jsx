@@ -378,62 +378,54 @@ export default function Home() {
       const docSnap = await getDoc(userStatsRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-
-        if (data.dayNumber !== todayDayNumber) {
-          //It's a new day-> Reset daily tasks
+        if (data.lastResetDay !== todayDayNumber && todayDayNumber === 0) {
+          const resetData = {};
+          for (let i = 0; i < 7; i++) {
+            resetData[`day${i}`] = {
+              dailyTotalTask: 0,
+              dailyCompletedTask: 0,
+            };
+          }
           await updateDoc(userStatsRef, {
-            dailyTotalTask: 0,
-            dailyCompletedTask: 0,
-            dayNumber: todayDayNumber,
+            ...resetData,
+            weeklyTotalTask: 0,
+            weeklyCompletedTask: 0,
+            lastResetDay: todayDayNumber,
           });
-          setTotalTask(0);
-          setDoneTask(0);
-        } else {
-          //same day->load existing data
-          setTotalTask(data.dailyTotalTask || 0);
-          setDoneTask(data.dailyCompletedTask || 0);
         }
-        // Weekly data always stays
-        setTotalTaskWeekly(data.weeklyTotalTask || 0);
-        setDoneTaskWeekly(data.weeklyCompletedTask || 0);
-      } else {
-        // First time data is not there → create new
-        await setDoc(userStatsRef, {
+        if (todayDayNumber === 1) {
+          await updateDoc(userStatsRef, {
+            lastResetDay: 1,
+          });
+        }
+        const todayData = data[`day${todayDayNumber}`] || {
           dailyTotalTask: 0,
           dailyCompletedTask: 0,
+        };
+        setTotalTask(todayData.dailyTotalTask);
+        setDoneTask(todayData.dailyCompletedTask);
+        setTotalTaskWeekly(todayData.weeklyTotalTask);
+        setDoneTaskWeekly(todayData.weeklyCompletedTask);
+      } else {
+        // First time user → Create default data
+        const initailData = {
           weeklyTotalTask: 0,
           weeklyCompletedTask: 0,
-          dayNumber: todayDayNumber,
-        });
-
+          lastResetDay: 1,
+        };
+        for (let i = 0; i < 7; i++) {
+          initailData[`day${i}`] = {
+            dailyTotalTask: 0,
+            dailyCompletedTask: 0,
+          };
+        }
+        await setDoc(userStatsRef, initailData);
         setTotalTask(0);
         setDoneTask(0);
         setTotalTaskWeekly(0);
         setDoneTaskWeekly(0);
       }
-    } catch (error) {
-      console.error("Error fetching user stats: ", error);
-    }
-    // try {
-    //   const userStatsRef = doc(db, "userStats", userId);
-    //   const docSnap = await getDoc(userStatsRef);
-    //   if (docSnap.exists()) {
-    //     const data = docSnap.data();
-    //     setTotalTask(data.dailyTotalTask || 0);
-    //     setDoneTask(data.dailyCompletedTask || 0);
-    //     setTotalTaskWeekly(data.weeklyTotalTask || 0);
-    //     setDoneTaskWeekly(data.weeklyCompletedTask || 0);
-    //   } else {
-    //     await setDoc(userStatsRef, {
-    //       dailyTotalTask: 0,
-    //       dailyCompletedTask: 0,
-    //       weeklyTotalTask: 0,
-    //       weeklyCompletedTask: 0,
-    //     });
-    //   }
-    // } catch (error) {
-    //   console.error("Error fetching user stats: ", error);
-    // }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -450,27 +442,23 @@ export default function Home() {
       const user = auth.currentUser;
       if (!user) return;
       const today = new Date().getDay();
+      const userStatsRef = doc(db, "userStats", user.uid);
+      const docSnap = await getDoc(userStatsRef);
+
+      if (!docSnap.exists()) {
+        setData(days.map((day) => ({ name: day, percentage: 0 })));
+        return;
+      }
+
+      const statsData = docSnap.data();
       let tempData = [];
       for (let i = 0; i < 7; i++) {
-        const userStatsRef = doc(db, "userStats", user.uid);
-        const docSnap = await getDoc(userStatsRef);
+        const daykey = `day${i}`;
+        const total = statsData[daykey]?.dailyTotalTask || 0;
+        const done = statsData[daykey]?.dailyCompletedTask || 0;
+        const percentage = total === 0 ? 0 : (done / total) * 100;
 
-        if (docSnap.exists()) {
-          //const datas = docSnap.data();
-          const total =
-            i === today
-              ? docSnap.data().dailyTotalTask || 0
-              : data.dailyTotalTask || 0;
-          const done =
-            i === today
-              ? docSnap.data().dailyCompletedTask || 0
-              : data.dailyCompletedTask || 0;
-          const percentage = total === 0 ? 0 : (done / total) * 100;
-          tempData.push({ name: days[i], percentage });
-        } else {
-          tempData.push({ name: days[i], percentage: 0 });
-          //console.log("Percentage: ", days[i]);
-        }
+        tempData.push({ name: days[i], percentage });
       }
       setData(tempData);
     };
@@ -848,10 +836,12 @@ function Positive({
   const addTask = async () => {
     if (!auth.currentUser) return;
     const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+    const todayDayNumber = new Date().getDay();
     try {
       if (dailyGoodhabit) {
+        const dayField = `day${todayDayNumber}.dailyTotalTask`;
         await updateDoc(userStatsRef, {
-          dailyTotalTask: increment(1),
+          [dayField]: increment(1),
         });
         //setTotalTask((prev) => prev + 1);
       } else {
@@ -1049,13 +1039,17 @@ function ShowGoodHabit({
   const doneTask = async () => {
     if (!auth.currentUser) return;
     const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+    const todayDayNumber = new Date().getDay();
     try {
       if (dailyGoodhabit) {
+        //Daily habit -> Update today's data only
+        const dayField = `day${todayDayNumber}.dailyCompletedTask`;
         await updateDoc(userStatsRef, {
-          dailyCompletedTask: increment(1),
+          [dayField]: increment(1),
         });
         setDoneTask((prev) => prev + 1);
       } else {
+        // Weekly habit → Update weeklyCompletedTask
         await updateDoc(userStatsRef, {
           weeklyCompletedTask: increment(1),
         });
@@ -1106,10 +1100,12 @@ function ShowGoodHabit({
       }
       const documentRef = doc(db, "users", user.uid, collectionName, id);
       const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
+      const todayDayNumber = new Date().getDay();
       await deleteDoc(documentRef);
       if (dailyGoodhabit) {
+        const dayField = `day${todayDayNumber}.dailyTotalTask`;
         await updateDoc(userStatsRef, {
-          dailyTotalTask: increment(-1),
+          [dayField]: increment(-1),
         });
         setTotalTask((prev) => prev - 1);
       } else {
