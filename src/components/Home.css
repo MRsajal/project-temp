@@ -50,13 +50,14 @@
   display: none;
 }
 .topnav {
-  background-color: #a0a0a8;
+  background-color: #006a71;
   overflow: hidden;
   color: black;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: fit-content;
+  margin-top: -16px;
 }
 .topnav ul {
   display: flex;
@@ -64,7 +65,7 @@
   justify-content: center;
 }
 .topnav a {
-  color: #000000;
+  color: #fed2e2;
   text-align: center;
   padding: 14px 16px;
   text-decoration: none;
@@ -81,7 +82,7 @@
 }
 .topnav a.active {
   background-color: #72ade4;
-  color: white;
+  color: #006a71;
 }
 .popup-overlay {
   position: fixed;
@@ -106,19 +107,14 @@
   justify-content: center;
 }
 
-.close-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-}
 .display-task-amount2 {
   display: none;
 }
+
 @media screen and (max-width: 600px) {
+  body {
+    background-color: #27548a;
+  }
   .display-task-amount1 {
     display: none;
   }
@@ -137,6 +133,7 @@
     display: flex;
     align-items: center;
     flex-direction: column;
+    color: #72ade4;
   }
   .profile {
     display: flex;

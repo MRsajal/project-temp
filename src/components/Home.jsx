@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useReducer } from "react";
 import "./Home.css";
 import { useAuth } from "../context/authContext";
+import "./Button.css";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { useNavigate } from "react-router";
@@ -339,6 +340,7 @@ export default function Home() {
   };
 
   useEffect(() => {
+    if (window.innerWidth <= 600) return;
     const script = document.createElement("script");
     script.src = "./finisher-header.es5.min.js";
     script.type = "text/javascript";
@@ -531,7 +533,9 @@ export default function Home() {
           Update Pic
         </button>
         <h3>{user?.displayName}</h3>
-        <p style={{ color: "blue" }}>Today's Date: {formattedDate}</p>
+        <p style={{ color: "rgb(51, 177, 235)" }}>
+          Today's Date: {formattedDate}
+        </p>
         <p>
           Total points:{" "}
           <span style={{ color: "#86A788" }}>{points} points</span>
@@ -571,12 +575,6 @@ export default function Home() {
 
         <div className="graph">
           <button
-            style={{
-              backgroundColor: "#FFA955",
-              border: "1px solid gray",
-              color: "#102E50",
-              padding: "4px",
-            }}
             className="show-graph-btn"
             onClick={() => setShowGraph(!showGraph)}
           >
@@ -600,7 +598,7 @@ export default function Home() {
           )}
         </div>
 
-        <button className="logout-btn" onClick={handleLogOut}>
+        <button className="button-24" onClick={handleLogOut}>
           Logout
         </button>
       </div>
@@ -1458,3 +1456,8 @@ function ShowReward({ rewards, setReward, setPoints }) {
     </div>
   );
 }
+
+// <!-- HTML !-->
+// <button class="button-25" role="button">Button 25</button>
+
+/* CSS */
