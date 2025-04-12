@@ -213,8 +213,13 @@ export default function List() {
       <div className="todo-list-2">
         <div className="positive">
           <div className="good-habit">
-            <h3 style={{ color: "green" }}>Good Habits </h3>
-            <button onClick={() => setIsPopupOpen(true)}>➕</button>
+            <h3 style={{ color: "#67AE6E" }}>Good Habits </h3>
+            <button
+              style={{ backgroundColor: "#9ACBD0" }}
+              onClick={() => setIsPopupOpen(true)}
+            >
+              ➕
+            </button>
             {dailyGoodhabit
               ? isPopupOpen && (
                   <PositivePopup
@@ -289,7 +294,12 @@ export default function List() {
         <div className="negative">
           <div className="good-habit">
             <h3 style={{ color: "red" }}>Bad Habits </h3>
-            <button onClick={() => setIsNegativePopupOpen(true)}>➕</button>
+            <button
+              style={{ backgroundColor: "#9ACBD0" }}
+              onClick={() => setIsNegativePopupOpen(true)}
+            >
+              ➕
+            </button>
             {dailyBadhabit
               ? isNegativePopupOpen && (
                   <NegativePopup
@@ -351,7 +361,12 @@ export default function List() {
         <div className="reward">
           <div className="good-habit">
             <h3 style={{ color: "rgb(236, 120, 139)" }}>Reward </h3>
-            <button onClick={() => setIsRewardPopupOpen(true)}>➕</button>
+            <button
+              style={{ backgroundColor: "#9ACBD0" }}
+              onClick={() => setIsRewardPopupOpen(true)}
+            >
+              ➕
+            </button>
             {isRewardPopupOpen && (
               <RewardPopup onClose={() => setIsRewardPopupOpen(false)} />
             )}
@@ -781,7 +796,7 @@ function ShowGoodHabit({
         habits.done ? (
           <div></div>
         ) : (
-          <div key={habits.id} className="card">
+          <div key={habits.id} className="mobile-card">
             <p>
               <span
                 style={{ cursor: "pointer" }}
@@ -805,10 +820,11 @@ function ShowGoodHabit({
             </p>
             <button
               style={{
-                backgroundColor: "beige",
-                color: "gray",
+                backgroundColor: "#8f87f1",
+                color: "green",
                 border: "none",
                 cursor: "pointer",
+                fontSize: "15px",
               }}
               onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
@@ -869,7 +885,7 @@ function ShowBadHabit({
         habits.done ? (
           <div></div>
         ) : (
-          <div className="card">
+          <div className="mobile-card">
             <p>
               <span
                 style={{ cursor: "pointer" }}
@@ -1005,9 +1021,9 @@ function ShowReward({ rewards, setReward, setPoints }) {
         {showClaimedReward ? (
           claimedRewardsList.length > 0 ? (
             claimedRewardsList.map((reward) => (
-              <div className="card" key={reward.id}>
+              <div className="mobile-card" key={reward.id}>
                 <p>{reward.des}</p>
-                <p style={{ color: "#86A788" }}>Cost: {reward.cost} points</p>
+                <p style={{ color: "#FED2E2" }}>Cost: {reward.cost} points</p>
                 <p style={{ color: "green" }}>Claimed ✅</p>
               </div>
             ))
@@ -1019,7 +1035,7 @@ function ShowReward({ rewards, setReward, setPoints }) {
             reward.gain ? (
               <div></div>
             ) : (
-              <div className="card">
+              <div className="mobile-card">
                 <p>
                   <span
                     style={{ cursor: "pointer" }}

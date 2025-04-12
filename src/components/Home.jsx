@@ -571,6 +571,12 @@ export default function Home() {
 
         <div className="graph">
           <button
+            style={{
+              backgroundColor: "#FFA955",
+              border: "1px solid gray",
+              color: "#102E50",
+              padding: "4px",
+            }}
             className="show-graph-btn"
             onClick={() => setShowGraph(!showGraph)}
           >

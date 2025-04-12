@@ -7,7 +7,7 @@ body {
 }
 
 .topnav1 {
-  background-color: #a0a0a8;
+  background-color: #006a71;
   overflow: hidden;
   color: black;
   display: flex;
@@ -25,7 +25,7 @@ body {
   padding-left: 0;
 }
 .topnav1 a {
-  color: #000000;
+  color: #fed2e2;
   text-align: center;
   padding: 14px 16px;
   text-decoration: none;
@@ -42,7 +42,7 @@ body {
 }
 .topnav1 a.active {
   background-color: #72ade4;
-  color: white;
+  color: #006a71;
 }
 .show {
   display: flex;
@@ -50,6 +50,8 @@ body {
   width: 100vw;
   height: 100vh;
   font-family: "Noto Sans", sans-serif;
+  margin-top: -16px;
+  background-color: #27548a;
 }
 .todo-list-2 {
   display: grid;
@@ -61,6 +63,13 @@ body {
 .reward {
   padding-left: 5px;
 }
+.mobile-card {
+  background-color: #8f87f1;
+  height: 150px;
+  width: 120px;
+  padding: 5px;
+}
+
 @media screen and (max-width: 400px) {
   .topnav1 {
     flex-direction: column;
