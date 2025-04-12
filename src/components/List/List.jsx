@@ -187,7 +187,7 @@ export default function List() {
   const [isNegativePopupOpen, setIsNegativePopupOpen] = useState(false);
 
   return (
-    <div className="show header finisher-header">
+    <div className="show">
       <div className="list">
         <nav className="topnav1">
           <ul>
@@ -213,7 +213,7 @@ export default function List() {
       <div className="todo-list-2">
         <div className="positive">
           <div className="good-habit">
-            <h3>Good Habits </h3>
+            <h3 style={{ color: "green" }}>Good Habits </h3>
             <button onClick={() => setIsPopupOpen(true)}>➕</button>
             {dailyGoodhabit
               ? isPopupOpen && (
@@ -288,7 +288,7 @@ export default function List() {
         </div>
         <div className="negative">
           <div className="good-habit">
-            <h3>Bad Habits </h3>
+            <h3 style={{ color: "red" }}>Bad Habits </h3>
             <button onClick={() => setIsNegativePopupOpen(true)}>➕</button>
             {dailyBadhabit
               ? isNegativePopupOpen && (
@@ -350,7 +350,7 @@ export default function List() {
         </div>
         <div className="reward">
           <div className="good-habit">
-            <h3>Reward </h3>
+            <h3 style={{ color: "rgb(236, 120, 139)" }}>Reward </h3>
             <button onClick={() => setIsRewardPopupOpen(true)}>➕</button>
             {isRewardPopupOpen && (
               <RewardPopup onClose={() => setIsRewardPopupOpen(false)} />
@@ -436,7 +436,22 @@ function RewardAdd() {
     setCost(0);
   }
   return (
-    <div style={{ marginTop: "30px" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "20px",
+        marginTop: "30px",
+      }}
+    >
+      <div>
+        Add
+        <span style={{ color: "rgb(236, 120, 139)", textAlign: "center" }}>
+          {" "}
+          Reward
+        </span>
+      </div>
       <form style={{ marginTop: "20px" }} onSubmit={handleRewardSubmit}>
         <input
           type="number"
@@ -545,7 +560,10 @@ function Positive({
         gap: "20px",
       }}
     >
-      <div>Add {dailyGoodhabit ? "Daily" : "Weekly"} Positive Task</div>
+      <div>
+        Add {dailyGoodhabit ? "Daily" : "Weekly"}
+        <span style={{ color: "green" }}> Positive </span>Task
+      </div>
       <div className="todo">
         <div className="form">
           <form onSubmit={handleDescription}>
@@ -632,7 +650,8 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
       }}
     >
       <div style={{ textAlign: "center" }}>
-        Add {dailyBadhabit ? "Daily" : "Weekly"} Negative Task
+        Add {dailyBadhabit ? "Daily" : "Weekly"}
+        <span style={{ color: "red" }}> Negative </span>Task
       </div>
       <div className="todo">
         <div className="form">

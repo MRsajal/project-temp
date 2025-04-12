@@ -1,6 +1,10 @@
 /* .todo-list {
   display: flex;
 } */
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Press+Start+2P&family=Shafarik&display=swap");
+body {
+  margin: 0;
+}
 
 .topnav1 {
   background-color: #a0a0a8;
@@ -10,11 +14,15 @@
   align-items: center;
   justify-content: space-between;
   height: fit-content;
+  margin-left: 0;
+  padding-left: 0;
 }
 .topnav1 ul {
   display: flex;
   width: 100vw;
   justify-content: center;
+  margin-left: 0;
+  padding-left: 0;
 }
 .topnav1 a {
   color: #000000;
@@ -41,12 +49,18 @@
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+  font-family: "Noto Sans", sans-serif;
 }
 .todo-list-2 {
   display: grid;
   height: 100vh;
 }
-
+.negative {
+  padding-left: 5px;
+}
+.reward {
+  padding-left: 5px;
+}
 @media screen and (max-width: 400px) {
   .topnav1 {
     flex-direction: column;
