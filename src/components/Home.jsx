@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useState, useEffect, useReducer, useCallback } from "react";
 import "./Home.css";
 import { useAuth } from "../context/authContext";
 import "./Button.css";
@@ -31,6 +31,9 @@ import {
   LabelList,
 } from "recharts";
 import { async } from "@firebase/util";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -786,6 +789,47 @@ function PositivePopup({
   userId,
   setTotalTaskWeekly,
 }) {
+  const handleAddList = useCallback(
+    async (listItem) => {
+      if (!userId || !auth.currentUser) {
+        console.warn("User ID not available, cannot add habit to Firestore.");
+        // Maybe throw an error or return a status?
+        throw new Error("User not logged in");
+        // return false;
+      }
+
+      const userStatsRef = doc(db, "userStats", auth.currentuserId);
+      const todayDayNumber = new Date().getDay();
+
+      try {
+        // 1. Add the habit item itself
+        const collectionName = dailyGoodhabit
+          ? "dailyGoodhabit"
+          : "weeklyGoodhabit";
+        const userDocRef = doc(db, "users", auth.currentuserId);
+        const habitsCollectionRef = collection(userDocRef, collectionName);
+        const docRef = await addDoc(habitsCollectionRef, listItem);
+        console.log("Document written with ID:", docRef.id, "Data:", listItem);
+
+        // 2. Increment the counter (task adding logic)
+        if (dailyGoodhabit) {
+          const dayField = `day${todayDayNumber}.dailyTotalTask`;
+          await updateDoc(userStatsRef, { [dayField]: increment(1) });
+          setTotalTask((prev) => prev + 1); // Update local state if needed
+        } else {
+          await updateDoc(userStatsRef, { weeklyTotalTask: increment(1) });
+          setTotalTaskWeekly((prev) => prev + 1); // Update local state if needed
+        }
+        // return true; // Indicate success
+      } catch (error) {
+        console.error("Error adding document or updating stats: ", error);
+        // Propagate the error so the calling component knows it failed
+        throw new Error(`Failed to add habit: ${error.message}`);
+        // return false; // Indicate failure
+      }
+    },
+    [userId, dailyGoodhabit, db]
+  );
   return (
     <div className="popup-overlay">
       <div className="popup-content">
@@ -799,6 +843,7 @@ function PositivePopup({
           userId={userId}
           setTotalTaskWeekly={setTotalTaskWeekly}
         />
+        <hr style={{ margin: "30px 0" }} />
       </div>
     </div>
   );
@@ -882,6 +927,13 @@ function Positive({
   const [description, setDescription] = useState("");
   const [point, setPoint] = useState(10);
   const [difficulty, setDifficulty] = useState("Easy");
+  const [habitType, setHabitType] = useState("study");
+  const [customType, setCustomType] = useState("");
+  const [habitCount, setHabitCount] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getFinalType = () =>
+    habitType === "custom" && customType.trim() ? customType : habitType;
 
   const addTask = async () => {
     if (!auth.currentUser) return;
@@ -950,6 +1002,37 @@ function Positive({
     if (selectDificulty === "Hard") setPoint(20);
   }
 
+  const generatdHabits = async () => {
+    setIsLoading(true);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+
+    // const models = await genAI.listModels();
+    // console.log(models);
+
+    const finalType = getFinalType();
+    const prompt = `Generate ${habitCount} ${difficulty.toLowerCase()} ${finalType} habits. Just return habit titles, no descriptions.`;
+    try {
+      const result = await model.generateContent(prompt);
+      const text = await result.response.text();
+      const habits = text.split("\n").filter(Boolean).slice(0, habitCount);
+      habits.forEach((habit) => {
+        const habitItem = {
+          description: habit.replace(/^\d+\.\s*/, ""), // remove leading "1. "
+          point,
+          type: true,
+          done: false,
+          createdAt: new Date().getDay(),
+        };
+        setTotalTask((s) => s + 1);
+        handleAddList(habitItem);
+      });
+    } catch (error) {
+      console.error("Error generating habits:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -983,6 +1066,50 @@ function Positive({
             <button type="submit">Add</button>
           </form>
         </div>
+        <div style={{ textAlign: "center" }}>
+          <h4>Generate Habits with AI</h4>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+          >
+            <select
+              value={habitType}
+              onChange={(e) => setHabitType(e.target.value)}
+            >
+              <option value="study">Study</option>
+              <option value="eating">Eating</option>
+              <option value="exercise">Exercise</option>
+              <option value="mindfulness">Mindfulness</option>
+              <option value="productivity">Productivity</option>
+              <option value="custom">Custom</option>
+            </select>
+            {habitType === "custom" && (
+              <input
+                type="text"
+                placeholder="Enter custom habit type"
+                value={customType}
+                onChange={(e) => setCustomType(e.target.value)}
+              />
+            )}
+            <input
+              type="number"
+              value={habitCount}
+              min={1}
+              max={10}
+              onChange={(e) => setHabitCount(Number(e.target.value))}
+            />
+            <select
+              value={difficulty}
+              onChange={(e) => handleDifficultyChage(e.target.value)}
+            >
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+            <button onClick={generatdHabits} disabled={isLoading}>
+              {isLoading ? "Generating..." : "Generate Habits"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -991,9 +1118,13 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
   const [description, setDescription] = useState("");
   const [point, setPoint] = useState(10);
   const [difficulty, setDifficulty] = useState("Easy");
+
+  const [habitType, setHabitType] = useState("eating");
+  const [customType, setCustomType] = useState("");
+  const [habitCount, setHabitCount] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
   async function handleAddList(listItem) {
-    // setList((list) => [...list, listItem]);
-    // console.log(List);
     if (!auth.currentUser) {
       console.warn("User ID not availabe, cannot add todo to Firestore.");
       return;
@@ -1007,13 +1138,6 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
     } catch (error) {
       console.error("Error adding document: ", error);
     }
-    // try {
-    //   const collectionName = dailyBadhabit ? "dailyBadhabit" : "weeklyBadhabit";
-    //   const docRef = await addDoc(collection(db, collectionName), listItem);
-    //   console.log("Document written with ID:", docRef.id);
-    // } catch (error) {
-    //   console.error("Error adding document: ", error);
-    // }
   }
   function handleDescription(e) {
     e.preventDefault();
@@ -1039,6 +1163,37 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
     if (selectDificulty === "Medium") setPoint(15);
     if (selectDificulty === "Hard") setPoint(20);
   }
+
+  const generateAIHaibts = async () => {
+    setIsLoading(true);
+    const selectedType = customType || habitType;
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+    const prompt = `Generate ${habitCount} ${difficulty.toLowerCase()} bad habits related to ${selectedType}. Only return a simple list of habit titles.`;
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const habits = text.split("\n").filter(Boolean).slice(0, habitCount);
+
+      const currentDay = new Date().getDay();
+      const points =
+        difficulty === "Easy" ? 10 : difficulty === "Medium" ? 15 : 20;
+      for (const h of habits) {
+        const newItem = {
+          description: h.replace(/^\d+\.\s*/, ""),
+          point: points,
+          type: false,
+          done: false,
+          createdAt: currentDay,
+        };
+        await handleAddList(newItem);
+      }
+    } catch (error) {
+      console.error("Error generating habits:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -1071,6 +1226,54 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
             />
             <button type="submit">Add</button>
           </form>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <h4>Generate Habits with AI</h4>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+          >
+            <select
+              value={habitType}
+              onChange={(e) => setHabitType(e.target.value)}
+            >
+              <option value="eating">Eating</option>
+              <option value="sleep">Sleep</option>
+              <option value="study">Study</option>
+              <option value="exercise">Exercise</option>
+              <option value="custom">Custom</option>
+            </select>
+
+            {habitType === "custom" && (
+              <input
+                type="text"
+                placeholder="Enter custom type"
+                value={customType}
+                onChange={(e) => setCustomType(e.target.value)}
+              />
+            )}
+
+            <input
+              type="number"
+              placeholder="Number of habits"
+              min={1}
+              max={10}
+              value={habitCount}
+              onChange={(e) => setHabitCount(parseInt(e.target.value))}
+            />
+
+            <select
+              value={difficulty}
+              onChange={(e) => handleDifficultyChage(e.target.value)}
+            >
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+
+            <button onClick={generateAIHaibts} disabled={isLoading}>
+              {isLoading ? "Generating..." : "Generate Habits"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1456,8 +1659,3 @@ function ShowReward({ rewards, setReward, setPoints }) {
     </div>
   );
 }
-
-// <!-- HTML !-->
-// <button class="button-25" role="button">Button 25</button>
-
-/* CSS */
