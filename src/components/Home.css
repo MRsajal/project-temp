@@ -4,6 +4,7 @@
   grid-template-columns: 30% 70%;
   height: 100%;
   font-family: "Noto Sans", sans-serif;
+  margin-left: 10px;
 }
 
 .todo-list {
