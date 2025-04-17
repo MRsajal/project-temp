@@ -1370,7 +1370,7 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
         difficulty === "Easy" ? 10 : difficulty === "Medium" ? 15 : 20;
       for (const h of habits) {
         const newItem = {
-          description: h.replace(/^\d+\.\s*/, ""),
+          description: h.replace(/^(\*|-|\d+\.)\s*/, "").trim(),
           point: points,
           type: false,
           done: false,

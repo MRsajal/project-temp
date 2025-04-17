@@ -752,21 +752,14 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
     try {
       const result = await model.generateContent(prompt);
       const text = result.response.text();
-      const habits = text
-        .split("\n")
-        .map((line) =>
-          line
-            .replace(/^\s*[\*\-\d\.\)\:]+\s*/, "") // removes *, -, 1., 1), etc.
-            .replace(/[*_`]/g, "") // removes remaining Markdown characters
-            .trim()
-        )
-        .filter((line) => line.length > 0);
+      const habits = text.split("\n").filter(Boolean).slice(0, habitCount);
+
       const currentDay = new Date().getDay();
       const points =
         difficulty === "Easy" ? 10 : difficulty === "Medium" ? 15 : 20;
       for (const h of habits) {
         const newItem = {
-          description: h,
+          description: h.replace(/^\d+\.\s*/, ""),
           point: points,
           type: false,
           done: false,
@@ -782,50 +775,87 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
   };
 
   return (
-    <div className="card-container">
-      {badHabit.map((habits) =>
-        habits.done ? (
-          <div></div>
-        ) : (
-          <div className="card">
-            <p>
-              <span
-                style={{ cursor: "pointer" }}
-                onClick={() => handleDeleteItem(habits.id)}
-              >
-                ❌
-              </span>
-              {habits.description}
-            </p>
-            <p
-              style={{
-                color:
-                  habits.point === 10
-                    ? "orange"
-                    : habits.point === 15
-                    ? "blue"
-                    : "#86A788",
-              }}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "20px",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        Add {dailyBadhabit ? "Daily" : "Weekly"}
+        <span style={{ color: "red" }}> Negative </span>Task
+      </div>
+      <div className="todo">
+        <div className="form">
+          <form onSubmit={handleDescription} style={{ marginTop: "15px" }}>
+            <select
+              value={difficulty}
+              onChange={(e) => handleDifficultyChage(e.target.value)}
             >
-              Gain: {habits.point} points
-            </p>
-            <button
-              style={{
-                backgroundColor: "beige",
-                color: "gray",
-                border: "none",
-                padding: "8px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                marginTop: "auto",
-              }}
-              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Enter bad habit"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <button type="submit">Add</button>
+          </form>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <h4>Generate Habits with AI</h4>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+          >
+            <select
+              value={habitType}
+              onChange={(e) => setHabitType(e.target.value)}
             >
-              Complete habit
+              <option value="eating">Eating</option>
+              <option value="sleep">Sleep</option>
+              <option value="study">Study</option>
+              <option value="exercise">Exercise</option>
+              <option value="custom">Custom</option>
+            </select>
+
+            {habitType === "custom" && (
+              <input
+                type="text"
+                placeholder="Enter custom type"
+                value={customType}
+                onChange={(e) => setCustomType(e.target.value)}
+              />
+            )}
+
+            <input
+              type="number"
+              placeholder="Number of habits"
+              min={1}
+              max={10}
+              value={habitCount}
+              onChange={(e) => setHabitCount(parseInt(e.target.value))}
+            />
+
+            <select
+              value={difficulty}
+              onChange={(e) => handleDifficultyChage(e.target.value)}
+            >
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+
+            <button onClick={generateAIHaibts} disabled={isLoading}>
+              {isLoading ? "Generating..." : "Generate Habits"}
             </button>
           </div>
-        )
-      )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -985,6 +1015,11 @@ function ShowBadHabit({
   async function handlePoint(id, point, done) {
     try {
       const documentRef = doc(db, collectionName, id);
+      const docSnap = await getDoc(documentRef);
+      if (!docSnap.exists()) {
+        console.error("Document does not exist:", id);
+        return;
+      }
       await updateDoc(documentRef, { done: !done });
       const updatedDoc = await getDoc(documentRef);
       const updatedDone = updatedDoc.data()?.done;
@@ -1023,7 +1058,7 @@ function ShowBadHabit({
           <div></div>
         ) : (
           <div className="card">
-            <p style={{ color: "black" }}>
+            <p>
               <span
                 style={{ cursor: "pointer" }}
                 onClick={() => handleDeleteItem(habits.id)}
