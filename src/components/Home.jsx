@@ -35,7 +35,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
-export default function Home() {
+export default function Home({ darkMode, setDarkMode }) {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const [goodHabit, setGoodHabit] = useState([]);
@@ -51,7 +51,7 @@ export default function Home() {
   const [doneTaskWeekly, setDoneTaskWeekly] = useState(0);
   const [totatTask, setTotalTask] = useState(0);
   const [totatTaskWeekly, setTotalTaskWeekly] = useState(0);
-  const [darkMode, setDarkMode] = useState(false);
+  //const [darkMode, setDarkMode] = useState(false);
   const [imageUrl, setImageUrl] = useState(
     `https://i.pravatar.cc/150?u=${Math.random()}`
   );
@@ -511,6 +511,8 @@ export default function Home() {
       doneTaskWeekly={doneTaskWeekly}
       totatTaskWeekly={totatTaskWeekly}
       data={data}
+      darkMode={darkMode}
+      setDarkMode={setDarkMode}
     />
   ) : (
     <div
@@ -791,8 +793,9 @@ function MobileDisplay({
   doneTaskWeekly,
   totatTaskWeekly,
   data,
+  darkMode,
+  setDarkMode,
 }) {
-  const [darkMode, setDarkMode] = useState(false);
   useEffect(() => {
     document.body.style.backgroundColor = darkMode ? "#121212" : "#ffffff";
     document.body.style.color = darkMode ? "#ffffff" : "#121212";
@@ -822,10 +825,10 @@ function MobileDisplay({
                   List
                 </NavLink>
               </li>
+              <li onClick={toggleMode} className="mode-toggle">
+                {darkMode ? "🌙" : "🌑"}
+              </li>
             </ul>
-            <button onClick={toggleMode} className="mode-toggle">
-              {darkMode ? "🌙" : "🌑"}
-            </button>
           </div>
         </nav>
       </div>

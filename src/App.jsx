@@ -19,6 +19,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedProfileImage, setSelectedProfileImage] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
   const handleImageSelect = (imageUrl) => {
     setSelectedProfileImage(imageUrl);
   };
@@ -76,11 +77,20 @@ export default function App() {
             path="/register"
             element={<Register onImageSelect={handleImageSelect} />}
           />
-          <Route path="/list" element={<List />} />
+          <Route
+            path="/list"
+            element={<List darkMode={darkMode} setDarkMode={setDarkMode} />}
+          />
           <Route path="/updateProfilePic" element={<UpdateProfilePic />} />
           <Route
             path="/home"
-            element={isAuthenticated ? <Home /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <Home darkMode={darkMode} setDarkMode={setDarkMode} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
           <Route
             path="/"

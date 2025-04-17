@@ -19,7 +19,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
-export default function List() {
+export default function List({ darkMode, setDarkMode }) {
   const [user, setUser] = useState(null);
   const [goodHabit, setGoodHabit] = useState([]);
   const [goodHabitWeekly, setGoodHabitWeekly] = useState([]);
@@ -184,7 +184,7 @@ export default function List() {
       return () => unsubscribe();
     }
   }, [db, auth.currentUser]);
-  const [darkMode, setDarkMode] = useState(false);
+  //const [darkMode, setDarkMode] = useState(false);
   useEffect(() => {
     document.body.style.backgroundColor = darkMode ? "#121212" : "#ffffff";
     document.body.style.color = darkMode ? "#ffffff" : "#121212";
