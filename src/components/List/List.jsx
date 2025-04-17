@@ -184,6 +184,14 @@ export default function List() {
       return () => unsubscribe();
     }
   }, [db, auth.currentUser]);
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    document.body.style.backgroundColor = darkMode ? "#121212" : "#ffffff";
+    document.body.style.color = darkMode ? "#ffffff" : "#121212";
+  }, [darkMode]);
+  const toggleMode = () => {
+    setDarkMode((prevMode) => !prevMode);
+  };
 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isRewardPopupOpen, setIsRewardPopupOpen] = useState(false);
@@ -209,6 +217,9 @@ export default function List() {
               >
                 List
               </NavLink>
+            </li>
+            <li onClick={toggleMode} style={{ marginLeft: "15px" }}>
+              {darkMode ? "🌙" : "🌑"}
             </li>
           </ul>
         </nav>
@@ -438,6 +449,8 @@ function RewardPopup({ onClose }) {
 function RewardAdd() {
   const [des, setDes] = useState("");
   const [cost, setCost] = useState(0);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+
   async function handleRewardSubmit(e) {
     e.preventDefault();
     if (!des || !auth.currentUser) return;
@@ -453,6 +466,31 @@ function RewardAdd() {
     setDes("");
     setCost(0);
   }
+
+  async function generateRandomReward() {
+    setSuggestionLoading(true);
+    try {
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-pro-latest",
+      });
+      const prompt =
+        "Give one short and simple reward idea for someone who completed their daily habit task(It's for an website, user will use points to get this reward). Do not include bullet points, no asterisks, and no titles like 'Fun' or 'Relaxing'. Keep it concise and fun.For example, Have a 1h movie time.";
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const rawText = response.text();
+      const cleanedText = rawText
+        .replace(/(\*\*|[*:_-])/g, "") // remove bold, bullets, etc.
+        .split("\n") // if multiple lines, pick one
+        .find((line) => line.trim().length > 0) // pick first non-empty line
+        .trim();
+      setDes(cleanedText);
+    } catch (error) {
+      console.error("Error fetching AI reward:", err);
+      setDes("Watch your favorite movie!");
+    }
+    setSuggestionLoading(false);
+  }
+
   return (
     <div
       style={{
@@ -487,6 +525,9 @@ function RewardAdd() {
         />
         <button type="submit">Add</button>
       </form>
+      <button onClick={generateRandomReward} disabled={suggestionLoading}>
+        {suggestionLoading ? "Loading..." : "🎲 Random Reward"}
+      </button>
     </div>
   );
 }
@@ -608,83 +649,48 @@ function Positive({
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "20px",
-      }}
-    >
-      <div>
-        Add {dailyGoodhabit ? "Daily" : "Weekly"}
-        <span style={{ color: "green" }}> Positive </span>Task
-      </div>
-      <div className="todo">
-        <div className="form">
-          <form onSubmit={handleDescription}>
-            <select
-              value={difficulty}
-              onChange={(e) => handleDifficultyChage(e.target.value)}
+    <div className="card-container">
+      {goodHabit.map((habits) =>
+        habits.done ? null : (
+          <div key={habits.id} className="card">
+            <p>
+              <span
+                style={{ cursor: "pointer", marginRight: "8px" }}
+                onClick={() => handleDeleteItem(habits.id)}
+              >
+                ❌
+              </span>
+              {habits.description}
+            </p>
+            <p
+              style={{
+                color:
+                  habits.point === 10
+                    ? "orange"
+                    : habits.point === 15
+                    ? "blue"
+                    : "#86A788",
+              }}
             >
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Enter good habit"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            <button type="submit">Add</button>
-          </form>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <h4>Generate Habits with AI</h4>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-          >
-            <select
-              value={habitType}
-              onChange={(e) => setHabitType(e.target.value)}
+              Gain: {habits.point} points
+            </p>
+            <button
+              style={{
+                backgroundColor: "beige",
+                color: "gray",
+                border: "none",
+                padding: "8px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                marginTop: "auto",
+              }}
+              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
-              <option value="study">Study</option>
-              <option value="eating">Eating</option>
-              <option value="exercise">Exercise</option>
-              <option value="mindfulness">Mindfulness</option>
-              <option value="productivity">Productivity</option>
-              <option value="custom">Custom</option>
-            </select>
-            {habitType === "custom" && (
-              <input
-                type="text"
-                placeholder="Enter custom habit type"
-                value={customType}
-                onChange={(e) => setCustomType(e.target.value)}
-              />
-            )}
-            <input
-              type="number"
-              value={habitCount}
-              min={1}
-              max={10}
-              onChange={(e) => setHabitCount(Number(e.target.value))}
-            />
-            <select
-              value={difficulty}
-              onChange={(e) => handleDifficultyChage(e.target.value)}
-            >
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-            <button onClick={generatdHabits} disabled={isLoading}>
-              {isLoading ? "Generating..." : "Generate Habits"}
+              Complete habit
             </button>
           </div>
-        </div>
-      </div>
+        )
+      )}
     </div>
   );
 }
@@ -776,87 +782,50 @@ function Negative({ List, setList, setTotalTask, db, dailyBadhabit }) {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "20px",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        Add {dailyBadhabit ? "Daily" : "Weekly"}
-        <span style={{ color: "red" }}> Negative </span>Task
-      </div>
-      <div className="todo">
-        <div className="form">
-          <form onSubmit={handleDescription} style={{ marginTop: "15px" }}>
-            <select
-              value={difficulty}
-              onChange={(e) => handleDifficultyChage(e.target.value)}
+    <div className="card-container">
+      {badHabit.map((habits) =>
+        habits.done ? (
+          <div></div>
+        ) : (
+          <div className="card">
+            <p>
+              <span
+                style={{ cursor: "pointer" }}
+                onClick={() => handleDeleteItem(habits.id)}
+              >
+                ❌
+              </span>
+              {habits.description}
+            </p>
+            <p
+              style={{
+                color:
+                  habits.point === 10
+                    ? "orange"
+                    : habits.point === 15
+                    ? "blue"
+                    : "#86A788",
+              }}
             >
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Enter bad habit"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            <button type="submit">Add</button>
-          </form>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <h4>Generate Habits with AI</h4>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-          >
-            <select
-              value={habitType}
-              onChange={(e) => setHabitType(e.target.value)}
+              Gain: {habits.point} points
+            </p>
+            <button
+              style={{
+                backgroundColor: "beige",
+                color: "gray",
+                border: "none",
+                padding: "8px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                marginTop: "auto",
+              }}
+              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
-              <option value="eating">Eating</option>
-              <option value="sleep">Sleep</option>
-              <option value="study">Study</option>
-              <option value="exercise">Exercise</option>
-              <option value="custom">Custom</option>
-            </select>
-
-            {habitType === "custom" && (
-              <input
-                type="text"
-                placeholder="Enter custom type"
-                value={customType}
-                onChange={(e) => setCustomType(e.target.value)}
-              />
-            )}
-
-            <input
-              type="number"
-              placeholder="Number of habits"
-              min={1}
-              max={10}
-              value={habitCount}
-              onChange={(e) => setHabitCount(parseInt(e.target.value))}
-            />
-
-            <select
-              value={difficulty}
-              onChange={(e) => handleDifficultyChage(e.target.value)}
-            >
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-
-            <button onClick={generateAIHaibts} disabled={isLoading}>
-              {isLoading ? "Generating..." : "Generate Habits"}
+              Complete habit
             </button>
           </div>
-        </div>
-      </div>
+        )
+      )}
     </div>
   );
 }
@@ -961,13 +930,11 @@ function ShowGoodHabit({
   return (
     <div className="card-container">
       {goodHabit.map((habits) =>
-        habits.done ? (
-          <div></div>
-        ) : (
-          <div key={habits.id} className="mobile-card">
-            <p>
+        habits.done ? null : (
+          <div key={habits.id} className="card">
+            <p style={{ color: "black" }}>
               <span
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", marginRight: "8px" }}
                 onClick={() => handleDeleteItem(habits.id)}
               >
                 ❌
@@ -988,11 +955,13 @@ function ShowGoodHabit({
             </p>
             <button
               style={{
-                backgroundColor: "#8f87f1",
-                color: "green",
+                backgroundColor: "beige",
+                color: "gray",
                 border: "none",
+                padding: "8px",
+                borderRadius: "6px",
                 cursor: "pointer",
-                fontSize: "15px",
+                marginTop: "auto",
               }}
               onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
@@ -1053,8 +1022,8 @@ function ShowBadHabit({
         habits.done ? (
           <div></div>
         ) : (
-          <div className="mobile-card">
-            <p>
+          <div className="card">
+            <p style={{ color: "black" }}>
               <span
                 style={{ cursor: "pointer" }}
                 onClick={() => handleDeleteItem(habits.id)}
@@ -1080,7 +1049,10 @@ function ShowBadHabit({
                 backgroundColor: "beige",
                 color: "gray",
                 border: "none",
+                padding: "8px",
+                borderRadius: "6px",
                 cursor: "pointer",
+                marginTop: "auto",
               }}
               onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
@@ -1189,9 +1161,9 @@ function ShowReward({ rewards, setReward, setPoints }) {
         {showClaimedReward ? (
           claimedRewardsList.length > 0 ? (
             claimedRewardsList.map((reward) => (
-              <div className="mobile-card" key={reward.id}>
-                <p>{reward.des}</p>
-                <p style={{ color: "#FED2E2" }}>Cost: {reward.cost} points</p>
+              <div className="card" key={reward.id}>
+                <p style={{ color: "black" }}>{reward.des}</p>
+                <p style={{ color: "#86A788" }}>Cost: {reward.cost} points</p>
                 <p style={{ color: "green" }}>Claimed ✅</p>
               </div>
             ))
@@ -1203,8 +1175,8 @@ function ShowReward({ rewards, setReward, setPoints }) {
             reward.gain ? (
               <div></div>
             ) : (
-              <div className="mobile-card">
-                <p>
+              <div className="card">
+                <p style={{ color: "black" }}>
                   <span
                     style={{ cursor: "pointer" }}
                     onClick={() => handleDeleteItem(reward.id)}
@@ -1225,7 +1197,10 @@ function ShowReward({ rewards, setReward, setPoints }) {
                     backgroundColor: "beige",
                     color: "gray",
                     border: "none",
+                    padding: "8px",
+                    borderRadius: "6px",
                     cursor: "pointer",
+                    marginTop: "auto",
                   }}
                   onClick={() => handleReward(reward)}
                 >

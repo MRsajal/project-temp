@@ -51,6 +51,7 @@ export default function Home() {
   const [doneTaskWeekly, setDoneTaskWeekly] = useState(0);
   const [totatTask, setTotalTask] = useState(0);
   const [totatTaskWeekly, setTotalTaskWeekly] = useState(0);
+  const [darkMode, setDarkMode] = useState(false);
   const [imageUrl, setImageUrl] = useState(
     `https://i.pravatar.cc/150?u=${Math.random()}`
   );
@@ -61,6 +62,14 @@ export default function Home() {
     day: "numeric",
   });
 
+  // useEffect(() => {
+  //   document.body.style.backgroundColor = darkMode ? "#121212" : "#ffffff";
+  //   document.body.style.color = darkMode ? "#ffffff" : "#121212";
+  // }, [darkMode]);
+
+  const toggleMode = () => {
+    setDarkMode((prevMode) => !prevMode);
+  };
   //dailyGoodhabit
 
   useEffect(() => {
@@ -470,49 +479,46 @@ export default function Home() {
     fetchWeeklyData();
   });
 
+  const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    useEffect(() => {
+      const handleResize = () => {
+        setIsMobile(window.innerWidth <= 768);
+      };
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
+    return isMobile;
+  };
+  const isMobile = useIsMobile();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isRewardPopupOpen, setIsRewardPopupOpen] = useState(false);
   const [isNegativePopupOpen, setIsNegativePopupOpen] = useState(false);
-  return (
+  return isMobile ? (
+    <MobileDisplay
+      user={user}
+      imageUrl={imageUrl}
+      handleUpdateProfilePic={handleUpdateProfilePic}
+      formattedDate={formattedDate}
+      points={points}
+      dailyGoodhabit={dailyGoodhabit}
+      doneTask={doneTask}
+      totatTask={totatTask}
+      showGraph={showGraph}
+      handleLogOut={handleLogOut}
+      setShowGraph={setShowGraph}
+      setDailyGoodHabit={setDailyGoodHabit}
+      doneTaskWeekly={doneTaskWeekly}
+      totatTaskWeekly={totatTaskWeekly}
+      data={data}
+    />
+  ) : (
     <div
       className="main header finisher-header"
       style={{ height: "100vh", width: "100vw" }}
     >
-      <div className="list">
-        <nav className="topnav">
-          <ul>
-            <li>
-              <NavLink
-                to="/home"
-                className={({ isActive }) => `${isActive ? "active" : ""}`}
-              >
-                Home
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/list"
-                className={({ isActive }) => `${isActive ? "active" : ""}`}
-              >
-                List
-              </NavLink>
-            </li>
-          </ul>
-        </nav>
-      </div>
       <div className="profile">
         <h3>Profile</h3>
-        {/* <div style={{ display: "flex", flexDirection: "column" }}>
-          <img src={imageUrl} alt="User Avatar" height="150px" width="150px" />
-          <input
-            type="file"
-            accept="image/"
-            onChange={handleImageChange}
-            id="fileInput"
-            style={{ display: "none" }}
-          />
-          <label htmlFor="fileInput">Choose Image</label>
-        </div> */}
         <div>
           {user && user.photoURL && (
             <img
@@ -769,6 +775,158 @@ export default function Home() {
   );
 }
 
+function MobileDisplay({
+  user,
+  imageUrl,
+  handleUpdateProfilePic,
+  formattedDate,
+  points,
+  dailyGoodhabit,
+  doneTask,
+  totatTask,
+  showGraph,
+  handleLogOut,
+  setShowGraph,
+  setDailyGoodHabit,
+  doneTaskWeekly,
+  totatTaskWeekly,
+  data,
+}) {
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    document.body.style.backgroundColor = darkMode ? "#121212" : "#ffffff";
+    document.body.style.color = darkMode ? "#ffffff" : "#121212";
+  }, [darkMode]);
+  const toggleMode = () => {
+    setDarkMode((prevMode) => !prevMode);
+  };
+  return (
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <div className="list">
+        <nav className="topnav">
+          <div className="nav-content">
+            <ul className="nav-links">
+              <li>
+                <NavLink
+                  to="/home"
+                  className={({ isActive }) => `${isActive ? "active" : ""}`}
+                >
+                  Home
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/list"
+                  className={({ isActive }) => `${isActive ? "active" : ""}`}
+                >
+                  List
+                </NavLink>
+              </li>
+            </ul>
+            <button onClick={toggleMode} className="mode-toggle">
+              {darkMode ? "🌙" : "🌑"}
+            </button>
+          </div>
+        </nav>
+      </div>
+      <div className="profile-mobile">
+        <h3>Profile</h3>
+        <div>
+          {user && user.photoURL && (
+            <img
+              src={user.photoURL}
+              alt="User Avatar"
+              height="150px"
+              width="150px"
+              style={{ borderRadius: "50%", marginBottom: "10px" }}
+            />
+          )}
+          {!user && (
+            <img
+              src={imageUrl}
+              alt="User Avatar"
+              height="150px"
+              width="150px"
+            />
+          )}
+        </div>
+        <button className="logout-btn" onClick={handleUpdateProfilePic}>
+          Update Pic
+        </button>
+        <h3>{user?.displayName}</h3>
+        <p style={{ color: "rgb(51, 177, 235)" }}>
+          Today's Date: {formattedDate}
+        </p>
+        <p>
+          Total points:{" "}
+          <span style={{ color: "#86A788" }}>{points} points</span>
+        </p>
+        <div className="display-task-amount1">
+          <h4 style={{ color: dailyGoodhabit ? "purple" : "#01acdf" }}>
+            {dailyGoodhabit ? "Daily" : "Weekly"}
+          </h4>
+          <p style={{ color: "red" }}>
+            You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out
+            of {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
+          </p>
+        </div>
+        <div style={{ textAlign: "center" }} className="display-task-amount2">
+          <h4 style={{ color: dailyGoodhabit ? "purple" : "#01acdf" }}>
+            {dailyGoodhabit ? "Daily" : "Weekly"}
+          </h4>
+
+          <p style={{ color: "red" }}>
+            You have completed {dailyGoodhabit ? doneTask : doneTaskWeekly} out
+            of {dailyGoodhabit ? totatTask : totatTaskWeekly} tasks
+          </p>
+          <button
+            onClick={() => setDailyGoodHabit((prev) => !prev)}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#01acdf",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Swap
+          </button>
+        </div>
+
+        <div className="graph">
+          <button
+            className="show-graph-btn"
+            onClick={() => setShowGraph(!showGraph)}
+          >
+            {showGraph ? "Hide Progress" : "Show Daily Progress"}
+          </button>
+          {showGraph && (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data}>
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Bar dataKey="percentage" fill="#4ade80">
+                  <LabelList
+                    dataKey="percentage"
+                    position="top"
+                    formatter={(val) => `${val.toFixed(2)}%`}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <button className="button-24" onClick={handleLogOut}>
+          Logout
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function NegativePopup({ onClose, db, dailyBadhabit }) {
   return (
     <div className="popup-overlay">
@@ -864,6 +1022,8 @@ function RewardPopup({ onClose }) {
 function RewardAdd() {
   const [des, setDes] = useState("");
   const [cost, setCost] = useState(0);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+
   async function handleRewardSubmit(e) {
     e.preventDefault();
     if (!des || !auth.currentUser) return;
@@ -879,6 +1039,31 @@ function RewardAdd() {
     setDes("");
     setCost(0);
   }
+
+  async function generateRandomReward() {
+    setSuggestionLoading(true);
+    try {
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-pro-latest",
+      });
+      const prompt =
+        "Give one short and simple reward idea for someone who completed their daily habit task(It's for an website, user will use points to get this reward). Do not include bullet points, no asterisks, and no titles like 'Fun' or 'Relaxing'. Keep it concise and fun.For example, Have a 1h movie time.";
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const rawText = response.text();
+      const cleanedText = rawText
+        .replace(/(\*\*|[*:_-])/g, "") // remove bold, bullets, etc.
+        .split("\n") // if multiple lines, pick one
+        .find((line) => line.trim().length > 0) // pick first non-empty line
+        .trim();
+      setDes(cleanedText);
+    } catch (error) {
+      console.error("Error fetching AI reward:", err);
+      setDes("Watch your favorite movie!");
+    }
+    setSuggestionLoading(false);
+  }
+
   return (
     <div
       style={{
@@ -913,6 +1098,9 @@ function RewardAdd() {
         />
         <button type="submit">Add</button>
       </form>
+      <button onClick={generateRandomReward} disabled={suggestionLoading}>
+        {suggestionLoading ? "Loading..." : "🎲 Random Reward"}
+      </button>
     </div>
   );
 }
@@ -1380,13 +1568,11 @@ function ShowGoodHabit({
   return (
     <div className="card-container">
       {goodHabit.map((habits) =>
-        habits.done ? (
-          <div></div>
-        ) : (
+        habits.done ? null : (
           <div key={habits.id} className="card">
             <p>
               <span
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", marginRight: "8px" }}
                 onClick={() => handleDeleteItem(habits.id)}
               >
                 ❌
@@ -1410,7 +1596,10 @@ function ShowGoodHabit({
                 backgroundColor: "beige",
                 color: "gray",
                 border: "none",
+                padding: "8px",
+                borderRadius: "6px",
                 cursor: "pointer",
+                marginTop: "auto",
               }}
               onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
@@ -1434,6 +1623,11 @@ function ShowBadHabit({
   async function handlePoint(id, point, done) {
     try {
       const documentRef = doc(db, collectionName, id);
+      const docSnap = await getDoc(documentRef);
+      if (!docSnap.exists()) {
+        console.error("Document does not exist:", id);
+        return;
+      }
       await updateDoc(documentRef, { done: !done });
       const updatedDoc = await getDoc(documentRef);
       const updatedDone = updatedDoc.data()?.done;
@@ -1498,7 +1692,10 @@ function ShowBadHabit({
                 backgroundColor: "beige",
                 color: "gray",
                 border: "none",
+                padding: "8px",
+                borderRadius: "6px",
                 cursor: "pointer",
+                marginTop: "auto",
               }}
               onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
@@ -1643,7 +1840,10 @@ function ShowReward({ rewards, setReward, setPoints }) {
                     backgroundColor: "beige",
                     color: "gray",
                     border: "none",
+                    padding: "8px",
+                    borderRadius: "6px",
                     cursor: "pointer",
+                    marginTop: "auto",
                   }}
                   onClick={() => handleReward(reward)}
                 >

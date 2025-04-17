@@ -51,7 +51,7 @@ body {
   height: 100vh;
   font-family: "Noto Sans", sans-serif;
   margin-top: -16px;
-  background-color: #27548a;
+  /* background-color: #27548a; */
 }
 .todo-list-2 {
   display: grid;
