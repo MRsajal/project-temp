@@ -1401,6 +1401,7 @@ function ShowReward({ rewards, setReward, setPoints }) {
               padding: "10px",
               borderRadius: "6px",
               backgroundColor: "#ccc",
+              border: "none",
               cursor: "pointer",
             }}
           >
