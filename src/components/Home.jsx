@@ -1484,6 +1484,7 @@ function ShowGoodHabit({
   setDoneTaskWeekly,
   setTotalTaskWeekly,
 }) {
+  const [showModal, setShowModal] = useState(false);
   const doneTask = async () => {
     if (!auth.currentUser) return;
     const userStatsRef = doc(db, "userStats", auth.currentUser.uid);
@@ -1568,50 +1569,126 @@ function ShowGoodHabit({
       console.error("Error deleting document: ", error);
     }
   }
+
+  const incompleteHabits = goodHabit.filter((habits) => !habits.done);
+  const firstThreeHabits = incompleteHabits.slice(0, 3);
+  const remainingHabits = incompleteHabits.slice(3);
+  const HabitCard = ({ habits }) => (
+    <div key={habits.id} className="card">
+      <p>
+        <span
+          style={{ cursor: "pointer", marginRight: "8px" }}
+          onClick={() => handleDeleteItem(habits.id)}
+        >
+          ❌
+        </span>
+        {habits.description}
+      </p>
+      <p
+        style={{
+          color:
+            habits.point === 10
+              ? "orange"
+              : habits.point === 15
+              ? "blue"
+              : "#86A788",
+        }}
+      >
+        Gain: {habits.point} points
+      </p>
+      <button
+        style={{
+          backgroundColor: "beige",
+          color: "gray",
+          border: "none",
+          padding: "8px",
+          borderRadius: "6px",
+          cursor: "pointer",
+          marginTop: "auto",
+        }}
+        onClick={() => handlePoint(habits.id, habits.point, habits.done)}
+      >
+        Complete habit
+      </button>
+    </div>
+  );
+
   return (
-    <div className="card-container">
-      {goodHabit.map((habits) =>
-        habits.done ? null : (
-          <div key={habits.id} className="card">
-            <p>
-              <span
-                style={{ cursor: "pointer", marginRight: "8px" }}
-                onClick={() => handleDeleteItem(habits.id)}
-              >
-                ❌
-              </span>
-              {habits.description}
-            </p>
-            <p
-              style={{
-                color:
-                  habits.point === 10
-                    ? "orange"
-                    : habits.point === 15
-                    ? "blue"
-                    : "#86A788",
-              }}
-            >
-              Gain: {habits.point} points
-            </p>
+    <>
+      <div className="card-container">
+        {firstThreeHabits.map((habits) => (
+          <HabitCard key={habits.id} habits={habits} />
+        ))}
+        {remainingHabits.length > 0 && (
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              backgroundColor: "#ccc",
+              padding: "10px",
+              borderRadius: "6px",
+              marginTop: "10px",
+              cursor: "pointer",
+              border: "none",
+            }}
+          >
+            Show More
+          </button>
+        )}
+      </div>
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 999,
+          }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "20px",
+              borderRadius: "10px",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              maxWidth: "80vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>
+              All <span style={{ color: "green" }}>Positive</span> Habits
+            </h3>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {remainingHabits.map((habits) => (
+                <HabitCard key={habits.id} habits={habits} />
+              ))}
+            </div>
             <button
+              onClick={() => setShowModal(false)}
               style={{
-                backgroundColor: "beige",
-                color: "gray",
-                border: "none",
+                marginTop: "10px",
                 padding: "8px",
                 borderRadius: "6px",
+                backgroundColor: "lightcoral",
+                color: "white",
+                border: "none",
                 cursor: "pointer",
-                marginTop: "auto",
               }}
-              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
-              Complete habit
+              Close
             </button>
           </div>
-        )
+        </div>
       )}
-    </div>
+    </>
   );
 }
 function ShowBadHabit({
@@ -1623,6 +1700,7 @@ function ShowBadHabit({
   points,
   user,
 }) {
+  const [showModal, setShowModal] = useState(false);
   async function handlePoint(id, point, done) {
     try {
       const documentRef = doc(db, collectionName, id);
@@ -1662,100 +1740,178 @@ function ShowBadHabit({
       console.error("Error deleting document: ", error);
     }
   }
+
+  const incompleteHabits = badHabit.filter((habits) => !habits.done);
+  const firstThreeHabits = incompleteHabits.slice(0, 3);
+  const remainingHabits = incompleteHabits.slice(3);
+
+  const HabitCard = ({ habits }) => (
+    <div key={habits.id} className="card">
+      <p>
+        <span
+          style={{ cursor: "pointer", marginRight: "8px" }}
+          onClick={() => handleDeleteItem(habits.id)}
+        >
+          ❌
+        </span>
+        {habits.description}
+      </p>
+      <p
+        style={{
+          color:
+            habits.point === 10
+              ? "orange"
+              : habits.point === 15
+              ? "blue"
+              : "#86A788",
+        }}
+      >
+        Gain: {habits.point} points
+      </p>
+      <button
+        style={{
+          backgroundColor: "beige",
+          color: "gray",
+          border: "none",
+          padding: "8px",
+          borderRadius: "6px",
+          cursor: "pointer",
+          marginTop: "auto",
+        }}
+        onClick={() => handlePoint(habits.id, habits.point, habits.done)}
+      >
+        Complete habit
+      </button>
+    </div>
+  );
+
   return (
-    <div className="card-container">
-      {badHabit.map((habits) =>
-        habits.done ? (
-          <div></div>
-        ) : (
-          <div className="card">
-            <p>
-              <span
-                style={{ cursor: "pointer" }}
-                onClick={() => handleDeleteItem(habits.id)}
-              >
-                ❌
-              </span>
-              {habits.description}
-            </p>
-            <p
-              style={{
-                color:
-                  habits.point === 10
-                    ? "orange"
-                    : habits.point === 15
-                    ? "blue"
-                    : "#86A788",
-              }}
-            >
-              Gain: {habits.point} points
-            </p>
+    <>
+      <div className="card-container">
+        {firstThreeHabits.map((habits) => (
+          <HabitCard key={habits.id} habits={habits} />
+        ))}
+        {remainingHabits.length > 0 && (
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              backgroundColor: "#ccc",
+              padding: "10px",
+              borderRadius: "6px",
+              marginTop: "10px",
+              cursor: "pointer",
+              border: "none",
+            }}
+          >
+            Show More
+          </button>
+        )}
+      </div>
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 999,
+          }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "20px",
+              borderRadius: "10px",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              maxWidth: "80vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>
+              All <span style={{ color: "green" }}>Positive</span> Habits
+            </h3>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {remainingHabits.map((habits) => (
+                <HabitCard key={habits.id} habits={habits} />
+              ))}
+            </div>
             <button
+              onClick={() => setShowModal(false)}
               style={{
-                backgroundColor: "beige",
-                color: "gray",
-                border: "none",
+                marginTop: "10px",
                 padding: "8px",
                 borderRadius: "6px",
+                backgroundColor: "lightcoral",
+                color: "white",
+                border: "none",
                 cursor: "pointer",
-                marginTop: "auto",
               }}
-              onClick={() => handlePoint(habits.id, habits.point, habits.done)}
             >
-              Complete habit
+              Close
             </button>
           </div>
-        )
+        </div>
       )}
-    </div>
+    </>
   );
 }
 
 function ShowReward({ rewards, setReward, setPoints }) {
-  // const [claimedReward, setClaimedReward] = useState([]);
   const [showClaimedReward, setShowClaimedReward] = useState(false);
-  async function handleDeleteItem(id) {
-    if (!auth.currentUser) {
-      console.error("User not authenticated");
-      return;
-    }
+  const [claimedRewardsList, setClaimedRewardsList] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
-    const userDocRef = doc(db, "users", auth.currentUser.uid);
-    const rewardRef = doc(userDocRef, "AvaiableReward", id);
+  useEffect(() => {
+    setClaimedRewardsList(rewards.filter((reward) => reward.gain));
+  }, [rewards]);
 
+  const handleDeleteItem = async (id) => {
+    if (!auth.currentUser) return console.error("User not authenticated");
+
+    const rewardRef = doc(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "AvaiableReward",
+      id
+    );
     try {
       await deleteDoc(rewardRef);
       setReward((prevRewards) => prevRewards.filter((item) => item.id !== id));
     } catch (error) {
-      console.error("Error deleting reward from Firestore:", error);
+      console.error("Error deleting reward:", error);
     }
-  }
-  const handleReward = async (reward) => {
-    if (!auth.currentUser) {
-      console.error("User not authenticated");
-      return;
-    }
+  };
 
-    const userDocRef = doc(db, "users", auth.currentUser.uid);
-    const rewardRef = doc(userDocRef, "AvaiableReward", reward.id); // Correct path
+  const handleReward = async (reward) => {
+    if (!auth.currentUser) return console.error("User not authenticated");
+
+    const rewardRef = doc(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "AvaiableReward",
+      reward.id
+    );
 
     try {
-      // Fetch the document to check if it exists
       const docSnap = await getDoc(rewardRef);
-      if (!docSnap.exists()) {
-        console.error("Reward document does not exist:", reward.id);
-        alert("Reward not found!");
-        return;
-      }
+      if (!docSnap.exists()) return alert("Reward not found!");
 
-      // Check if the user has enough points before updating
       setPoints((prevPoints) => {
-        if (prevPoints - reward.cost < 0) {
+        if (prevPoints < reward.cost) {
           alert("Not enough points to redeem this reward!");
-          return prevPoints; // Keep points unchanged
+          return prevPoints;
         }
 
-        // Update Firestore to mark reward as claimed
         updateDoc(rewardRef, { gain: true })
           .then(() => {
             setReward((prevRewards) =>
@@ -1764,22 +1920,21 @@ function ShowReward({ rewards, setReward, setPoints }) {
               )
             );
           })
-          .catch((error) => {
-            console.error("Error updating Firestore:", error);
-          });
+          .catch((error) => console.error("Error updating reward:", error));
 
-        return prevPoints - reward.cost; // Deduct points
+        return prevPoints - reward.cost;
       });
     } catch (error) {
       console.error("Error processing reward:", error);
     }
   };
 
-  const [claimedRewardsList, setClaimedRewardsList] = useState([]);
+  const filteredRewards = showClaimedReward
+    ? claimedRewardsList
+    : rewards.filter((r) => !r.gain);
 
-  useEffect(() => {
-    setClaimedRewardsList(rewards.filter((reward) => reward.gain));
-  }, [rewards]);
+  const visibleRewards = filteredRewards.slice(0, 3);
+  const extraRewards = filteredRewards.length > 3;
 
   return (
     <div>
@@ -1803,62 +1958,148 @@ function ShowReward({ rewards, setReward, setPoints }) {
           Claimed Rewards
         </label>
       </div>
+
       <div className="card-container">
-        {showClaimedReward ? (
-          claimedRewardsList.length > 0 ? (
-            claimedRewardsList.map((reward) => (
-              <div className="card" key={reward.id}>
-                <p>{reward.des}</p>
-                <p style={{ color: "#86A788" }}>Cost: {reward.cost} points</p>
-                <p style={{ color: "green" }}>Claimed ✅</p>
-              </div>
-            ))
-          ) : (
-            "No claimed rewards yet."
-          )
-        ) : rewards.length > 0 ? (
-          rewards.map((reward) =>
-            reward.gain ? (
-              <div></div>
+        {visibleRewards.map((reward) => (
+          <div className="card" key={reward.id}>
+            <p>
+              {!showClaimedReward && (
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleDeleteItem(reward.id)}
+                >
+                  ❌
+                </span>
+              )}
+              {reward.des}
+            </p>
+            <p style={{ color: "#86A788" }}>
+              {showClaimedReward
+                ? `Cost: ${reward.cost} points`
+                : `Cost: ${reward.cost} points`}
+            </p>
+            {showClaimedReward ? (
+              <p style={{ color: "green" }}>Claimed ✅</p>
             ) : (
-              <div className="card">
-                <p>
-                  <span
-                    style={{ cursor: "pointer" }}
-                    onClick={() => handleDeleteItem(reward.id)}
-                  >
-                    ❌
-                  </span>
-                  {reward.des}
-                </p>
-                <p
-                  style={{
-                    color: "#86A788",
-                  }}
-                >
-                  Cost: {reward.cost} points
-                </p>
-                <button
-                  style={{
-                    backgroundColor: "beige",
-                    color: "gray",
-                    border: "none",
-                    padding: "8px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    marginTop: "auto",
-                  }}
-                  onClick={() => handleReward(reward)}
-                >
-                  Get Reward
-                </button>
-              </div>
-            )
-          )
-        ) : (
-          <div></div>
+              <button
+                style={{
+                  backgroundColor: "beige",
+                  color: "gray",
+                  border: "none",
+                  padding: "8px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleReward(reward)}
+              >
+                Get Reward
+              </button>
+            )}
+          </div>
+        ))}
+
+        {extraRewards && (
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              marginTop: "10px",
+              padding: "10px",
+              borderRadius: "6px",
+              backgroundColor: "#ccc",
+              cursor: "pointer",
+            }}
+          >
+            Show More
+          </button>
         )}
       </div>
+
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "10px",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              width: "90%",
+              maxWidth: "500px",
+            }}
+          >
+            <h3 style={{ marginBottom: "10px" }}>
+              {showClaimedReward ? "Claimed Rewards" : "All Available Rewards"}
+            </h3>
+            <div style={{ display: "flex", gap: "10px" }}>
+              {filteredRewards.map((reward) => (
+                <div
+                  className="card"
+                  key={reward.id}
+                  style={{ marginBottom: "10px" }}
+                >
+                  <p>
+                    {!showClaimedReward && (
+                      <span
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleDeleteItem(reward.id)}
+                      >
+                        ❌
+                      </span>
+                    )}
+                    {reward.des}
+                  </p>
+                  <p style={{ color: "#86A788" }}>Cost: {reward.cost} points</p>
+                  {showClaimedReward ? (
+                    <p style={{ color: "green" }}>Claimed ✅</p>
+                  ) : (
+                    <button
+                      onClick={() => handleReward(reward)}
+                      style={{
+                        backgroundColor: "beige",
+                        color: "gray",
+                        border: "none",
+                        padding: "8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Get Reward
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowModal(false)}
+              style={{
+                marginTop: "10px",
+                padding: "8px",
+                borderRadius: "6px",
+                backgroundColor: "lightcoral",
+                border: "none",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
